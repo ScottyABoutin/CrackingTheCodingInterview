@@ -2,7 +2,6 @@ package chap01.arraysAndStrings;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -18,7 +17,9 @@ import java.util.StringJoiner;
 public final class MyHashTable<K, V> implements Map<K, V> {
 
     /**
-     * This class represents a single entry in the map, notated by "Nodes" in LinkedLists.
+     * This class represents a single entry in the map, notated by "Nodes" that make up a singly
+     * linked list. Note that K and V in this inner class do not necessarily correspond to the
+     * outer class's type parameters (although they will in practice).
      * 
      * @param <K> the type of key a in the map this node belongs to
      * @param <V> the type of mapped values for the map this node belongs to
@@ -26,6 +27,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     private static class Node<K, V> implements Map.Entry<K, V> {
         final K key;
         V value;
+        Node<K, V> next = null;
 
         /**
          * Creates a Node holding the given key and value.
@@ -127,7 +129,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
        }
     }
 
-    private LinkedList<Node<K, V>>[] table;
+    private Node<K, V>[] table;
     private int size = 0;
 
     // Cached collections
@@ -137,7 +139,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
 
     @SuppressWarnings("unchecked")
     public MyHashTable() {
-        table = (LinkedList<Node<K, V>>[]) new LinkedList<?>[10];
+        table = (Node<K, V>[]) new Node<?, ?>[10];
     }
 
     /**
@@ -175,12 +177,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         Objects.requireNonNull(key);
 
         int index = hashToIndex(key);
-        LinkedList<Node<K, V>> nodes = table[index];
-        if (nodes == null) {
-            return false;
-        }
-        
-        for (Node<K, V> node : nodes) {
+        for (Node<K, V> node = table[index]; node != null; node = node.next) {
             if (node.key.equals(key)) {
                 return true;
             }
@@ -201,13 +198,12 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     public boolean containsValue(Object value) {
         Objects.requireNonNull(value);
 
-        for(LinkedList<Node<K, V>> nodes : table) {
-            if (nodes == null) {
-                continue;
-            }
-            for (Node<K, V> node : nodes) {
+        for (Node<K, V> node : table) {
+            while (node != null) {
                 if (node.value.equals(value)) {
                     return true;
+                } else {
+                    node = node.next;
                 }
             }
         }
@@ -230,11 +226,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         Objects.requireNonNull(key);
 
         int index = hashToIndex(key);
-        LinkedList<Node<K, V>> nodes = table[index];
-        if (nodes == null) {
-            return null;
-        }
-        for (Node<K, V> node : nodes) {
+        for (Node<K, V> node = table[index]; node != null; node = node.next) {
             if (node.key.equals(key)) {
                 return node.value;
             }
@@ -258,19 +250,23 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         Objects.requireNonNull(value);
 
         int index = hashToIndex(key);
-        if (table[index] == null) {
-            table[index] = new LinkedList<>();
-        }
-        LinkedList<Node<K, V>> nodes = table[index];
-        for (Node<K, V> node : nodes) {
+        Node<K, V> lastNode = null;
+        for (Node<K, V> node = table[index]; node != null; node = node.next) {
             if (node.key.equals(key)) {
                 return node.setValue(value);
             }
+            lastNode = node;
         }
+        
         Node<K, V> node = new Node<>(key, value);
-        table[index].add(node);
+        if (lastNode == null) {
+            table[index] = node;
+        } else {
+            lastNode.next = node;
+        }
         size++;
         return null;
+
     }
 
     /**
@@ -289,15 +285,12 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         Objects.requireNonNull(key);
 
         int index = hashToIndex(key);
-        LinkedList<Node<K, V>> nodes = table[index];
-        if (nodes == null) {
-            return null;
-        }
-        for (Iterator<Node<K, V>> iterator = nodes.iterator(); iterator.hasNext(); ) {
-            Node<K, V> node = iterator.next();
+        for (Node<K, V> node = table[index], prevNode = null; node != null; node = node.next) {
             if (node.key.equals(key)) {
                 V value = node.value;
-                iterator.remove();
+                if (prevNode != null) {
+                    prevNode.next = node.next;
+                }
                 size--;
                 return value;
             }
