@@ -1,7 +1,11 @@
 package chap01.arraysAndStrings;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -329,7 +333,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
      * Returns a Set view of the keys contained in this map. The set is backed by the map, so
      * changes to the map are reflected in the set, and vice-versa. If the map is modified while an
      * iteration over the set is in progress (except through the iterator's own remove operation),
-     * the results of the iteration are undefined. The set supports element removal,vwhich removes
+     * the results of the iteration are undefined. The set supports element removal, which removes
      * the corresponding mapping from the map, via the Iterator.remove, Set.remove, removeAll,
      * retainAll, and clear operations. It does not support the add or addAll operations.
      * 
@@ -349,41 +353,115 @@ public final class MyHashTable<K, V> implements Map<K, V> {
      */
     private class KeySet<E> implements Set<E> {
         /**
+         * Returns the number of elements in this set (its cardinality). If this set contains more
+         * than Integer.MAX_VALUE elements, returns Integer.MAX_VALUE.
          * 
+         * @return the number of elements in this set (its cardinality)
          */
         @Override
         public int size() {
             return size;
         }
 
+        /**
+         * Returns true if this set contains no elements.
+         * 
+         * @return true if this set contains no elements
+         */
         @Override
         public boolean isEmpty() {
             return size == 0;
         }
 
+        /**
+         * Returns true if this set contains the specified element. More formally, returns true if
+         * and only if this set contains an element e such that Objects.equals(o, e).
+         * 
+         * @param o element whose presence in this set is to be tested
+         * @return true if this set contains the specified element
+         * @throws NullPointerException if the specified element is null
+         */
         @Override
         public boolean contains(Object o) {
             return containsKey(o);
         }
 
+        /**
+         * Returns an iterator over the elements in this set. The elements are returned in no
+         * particular order
+         * 
+         * @return an iterator over the elements in this set
+         */
         @Override
         public Iterator<E> iterator() {
-            // TODO Auto-generated method stub
-            return null;
+            return new Iter<E>(IterType.KEYS);
         }
 
+        /**
+         * Returns an array containing all of the elements in this set, in no particular order. The
+         * returned array will be "safe" in that no references to it are maintained by this set.
+         * (In other words, this method must allocate a new array even if this set is backed by an
+         * array). The caller is thus free to modify the returned array. This method acts as bridge
+         * between array-based and collection-based APIs.
+         * 
+         * @return an array containing all the elements in this set
+         */
         @Override
         public Object[] toArray() {
-            // TODO Auto-generated method stub
-            return null;
+            Object[] array = new Object[size];
+            int i = 0;
+            for (E key : this) {
+                array[i] = key;
+                i++;
+            }
+            return array;
         }
 
+        /**
+         * Returns an array containing all of the elements in this set; the runtime type of the
+         * returned array is that of the specified array. If the set fits in the specified array,
+         * it is returned therein. Otherwise, a new array is allocated with the runtime type of the
+         * specified array and the size of this set. If this set fits in the specified array with
+         * room to spare (i.e., the array has more elements than this set), the element in the
+         * array immediately following the end of the set is set to null. (This is useful in
+         * determining the length of this set since the caller knows that this set does not
+         * contain any null elements.)
+         * This set makes no guarantees as to what order its elements are returned by its iterator.
+         * Like the toArray() method, this method acts as bridge between array-based and
+         * collection-based APIs. Further, this method allows precise control over the runtime type
+         * of the output array, and may, under certain circumstances, be used to save allocation
+         * costs.
+         * Suppose x is a set known to contain only strings. The following code can be used to dump
+         * the set into a newly allocated array of String: String[] y = x.toArray(new String[0]);
+         * Note that toArray(new Object[0]) is identical in function to toArray().
+         * 
+         * @param <T>  the component type of the array to contain the collection
+         * @param a the array into which the elements of this set are to be stored, if it is big
+         *          enough; otherwise, a new array of the same runtime type is allocated for this
+         *          purpose.
+         * @return an array containing all the elements in this set
+         * @throws ArrayStoreException if the runtime type of the specified array is not a
+         *                             supertype of the runtime type of every element in this set
+         * @throws NullPointerException if the specified array is null
+         */
         @Override
         public <T> T[] toArray(T[] a) {
-            // TODO Auto-generated method stub
-            return null;
+            List<E> list = new ArrayList<>(size);
+            for (E key : this) {
+                list.add(key);
+            }
+            return list.toArray(a);
         }
 
+        /**
+         * Adds the specified element to this set if it is not already present
+         * (optional operation). This method is not supported by this implementation.
+         * 
+         * @implSpec This implementation throws an UnsupportedOperationException.
+         * @param e element to be added to this set
+         * @return nothing, as an exception is always thrown
+         * @throws UnsupportedOperationException always
+         */
         @Override
         public boolean add(E e) {
             throw new UnsupportedOperationException();
@@ -637,12 +715,22 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
     }
 
+    private enum IterType {
+        KEYS, VALUES, ENTRIES
+    }
+    
     /**
      * 
      * 
      * @param <E> the type of elements returned by this iterator
      */
     private class Iter<E> implements Iterator<E> {
+        
+        private IterType type;
+
+        public Iter(IterType type) {
+            this.type = type;
+        }
 
         /**
          * Returns true if the iteration has more elements. (In other words, returns true if next()
