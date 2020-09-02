@@ -374,7 +374,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public boolean isEmpty() {
-            return size == 0;
+            return size() == 0;
         }
         
         /**
@@ -389,7 +389,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         public boolean contains(Object o) {
             Objects.requireNonNull(o);
             
-            return containsKey(o);
+            return MyHashTable.this.containsKey(o);
         }
         
         /**
@@ -400,7 +400,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Iterator<K> iterator() {
-            if (isEmpty()) {
+            if (this.isEmpty()) {
                 return Collections.emptyIterator();
             } else {
                 return new Iter<>(IterType.KEYS);
@@ -512,7 +512,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             boolean missingElement = false;
             for (Object element : c) {
                 Objects.requireNonNull(element);
-                if (!containsKey(element)) {
+                if (!MyHashTable.this.containsKey(element)) {
                     missingElement = true;
                 }
             }
@@ -549,7 +549,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             Objects.requireNonNull(c);
             
             boolean modified = false;
-            for (Iterator<K> iterator = iterator(); iterator.hasNext();) {
+            for (Iterator<K> iterator = this.iterator(); iterator.hasNext();) {
                 K element = iterator.next();
                 if (!c.contains(element)) {
                     iterator.remove();
@@ -573,7 +573,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             Objects.requireNonNull(c);
             
             boolean modified = false;
-            for (Iterator<K> iterator = iterator(); iterator.hasNext();) {
+            for (Iterator<K> iterator = this.iterator(); iterator.hasNext();) {
                 K element = iterator.next();
                 if (c.contains(element)) {
                     iterator.remove();
@@ -610,7 +610,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                 return false;
             }
             Set<?> other = (Set<?>) o;
-            return size == other.size() && containsAll(other);
+            return this.size() == other.size() && this.containsAll(other);
         }
         
         /**
@@ -624,7 +624,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public int hashCode() {
-            return stream().mapToInt(Object::hashCode).sum();
+            return this.stream().mapToInt(Object::hashCode).sum();
         }
         
         /**
@@ -687,7 +687,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public boolean isEmpty() {
-            return size == 0;
+            return size() == 0;
         }
         
         /**
@@ -704,7 +704,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         public boolean contains(Object o) {
             Objects.requireNonNull(o);
             
-            return containsValue(o);
+            return MyHashTable.this.containsValue(o);
         }
         
         /**
@@ -716,7 +716,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Iterator<V> iterator() {
-            if (isEmpty()) {
+            if (this.isEmpty()) {
                 return Collections.emptyIterator();
             } else {
                 return new Iter<>(IterType.VALUES);
@@ -825,7 +825,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             Objects.requireNonNull(generator);
             
             T[] array = generator.apply(size);
-            return toArray(array);
+            return this.toArray(array);
         }
         
         /**
@@ -870,7 +870,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         public boolean remove(Object o) {
             Objects.requireNonNull(o);
             
-            for (Iterator<V> iterator = iterator(); iterator.hasNext();) {
+            for (Iterator<V> iterator = this.iterator(); iterator.hasNext();) {
                 V value = iterator.next();
                 if (value.equals(o)) {
                     iterator.remove();
@@ -895,7 +895,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             boolean missingElement = false;
             for (Object element : c) {
                 Objects.requireNonNull(element);
-                if (!containsValue(element)) {
+                if (!MyHashTable.this.containsValue(element)) {
                     missingElement = true;
                 }
             }
@@ -935,7 +935,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             Objects.requireNonNull(c);
             
             boolean changed = false;
-            for (Iterator<V> iterator = iterator(); iterator.hasNext();) {
+            for (Iterator<V> iterator = this.iterator(); iterator.hasNext();) {
                 V value = iterator.next();
                 if (c.contains(value)) {
                     iterator.remove();
@@ -962,7 +962,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             Objects.requireNonNull(filter);
             
             boolean changed = false;
-            for (Iterator<V> iterator = iterator(); iterator.hasNext();) {
+            for (Iterator<V> iterator = this.iterator(); iterator.hasNext();) {
                 V value = iterator.next();
                 if (filter.test(value)) {
                     iterator.remove();
@@ -986,7 +986,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             Objects.requireNonNull(c);
             
             boolean changed = false;
-            for (Iterator<V> iterator = iterator(); iterator.hasNext();) {
+            for (Iterator<V> iterator = this.iterator(); iterator.hasNext();) {
                 V value = iterator.next();
                 if (!c.contains(value)) {
                     iterator.remove();
@@ -1115,7 +1115,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public boolean isEmpty() {
-            return size == 0;
+            return size() == 0;
         }
         
         /**
@@ -1135,7 +1135,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             Entry<?, ?> entry = (Entry<?, ?>) o;
             Object key = Objects.requireNonNull(entry.getKey());
             Object value = Objects.requireNonNull(entry.getValue());
-            V storedValue = get(key);
+            V storedValue = MyHashTable.this.get(key);
             return value.equals(storedValue);
         }
         
@@ -1147,7 +1147,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Iterator<Entry<K, V>> iterator() {
-            if (isEmpty()) {
+            if (this.isEmpty()) {
                 return Collections.emptyIterator();
             } else {
                 return new Iter<>(IterType.ENTRIES);
@@ -1243,7 +1243,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             Entry<?, ?> entry = (Entry<?, ?>) o;
             Object key = Objects.requireNonNull(entry.getKey());
             Object value = Objects.requireNonNull(entry.getValue());
-            V storedValue = get(key);
+            V storedValue = MyHashTable.this.get(key);
             if (value.equals(storedValue)) {
                 return MyHashTable.this.remove(key) != null;
             } else {
@@ -1273,7 +1273,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                 Entry<?, ?> entry = (Entry<?, ?>) element;
                 Object key = Objects.requireNonNull(entry.getKey());
                 Object value = Objects.requireNonNull(entry.getValue());
-                V storedValue = get(key);
+                V storedValue = MyHashTable.this.get(key);
                 if (!storedValue.equals(value)) {
                     return false;
                 }
@@ -1311,7 +1311,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             Objects.requireNonNull(c);
             
             boolean modified = false;
-            for (Iterator<Entry<K, V>> iterator = iterator(); iterator.hasNext();) {
+            for (Iterator<Entry<K, V>> iterator = this.iterator(); iterator.hasNext();) {
                 Entry<K, V> entry = iterator.next();
                 if (!c.contains(entry)) {
                     iterator.remove();
@@ -1335,7 +1335,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             Objects.requireNonNull(c);
             
             boolean modified = false;
-            for (Iterator<Entry<K, V>> iterator = iterator(); iterator.hasNext();) {
+            for (Iterator<Entry<K, V>> iterator = this.iterator(); iterator.hasNext();) {
                 Entry<K, V> entry = iterator.next();
                 if (c.contains(entry)) {
                     iterator.remove();
@@ -1372,7 +1372,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                 return false;
             }
             Set<?> other = (Set<?>) o;
-            return size == other.size() && containsAll(other);
+            return this.size() == other.size() && this.containsAll(other);
         }
         
         /**
@@ -1386,7 +1386,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public int hashCode() {
-            return stream().mapToInt(Object::hashCode).sum();
+            return this.stream().mapToInt(Object::hashCode).sum();
         }
         
         /**
@@ -1537,7 +1537,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     @Override
     public String toString() {
         StringJoiner resultJoiner = new StringJoiner(", ", "{", "}");
-        for (Entry<K, V> entry : entrySet()) {
+        for (Entry<K, V> entry : this.entrySet()) {
             resultJoiner.add(entry.toString());
         }
         return resultJoiner.toString();
