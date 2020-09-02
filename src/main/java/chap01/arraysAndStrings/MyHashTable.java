@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Spliterator;
@@ -625,6 +626,25 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         @Override
         public int hashCode() {
             return this.stream().mapToInt(Object::hashCode).sum();
+        }
+        
+        /**
+         * Returns a string representation of this collection. The string representation consists of
+         * a list of the collection's elements in the order they are returned by its iterator,
+         * enclosed in square brackets ("[]"). Adjacent elements are separated by the characters ",
+         * " (comma and space). Elements are converted to strings by toString(), since this
+         * collection will contain no null elements.
+         * 
+         * While this is not required by the Set interface, it makes this much easier to debug and
+         * use.
+         */
+        @Override
+        public String toString() {
+            StringJoiner joiner = new StringJoiner(", ", "[", "]");
+            for (K key : this) {
+                joiner.add(key.toString());
+            }
+            return joiner.toString();
         }
         
         /**
@@ -1389,6 +1409,15 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             return this.stream().mapToInt(Object::hashCode).sum();
         }
         
+        @Override
+        public String toString() {
+            StringJoiner joiner = new StringJoiner(", ", "[", "]");
+            for (Entry<K, V> entry : this) {
+                joiner.add(entry.toString());
+            }
+            return joiner.toString();
+        }
+        
         /**
          * Creates a Spliterator over the elements in this set. The Spliterator reports
          * Spliterator.DISTINCT, Spliterator.SIZED, Spliterator.SUBSIZED, and Spliterator.NONNULL.
@@ -1421,12 +1450,16 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         
         private Node<K, V>[] table = MyHashTable.this.table;
         private int index = 0;
-        private Node<K, V> currentNode;
+        private Node<K, V> currentNode = null;
+        private Node<K, V> nextNode;
         private IterType type;
         
         public Iter(IterType type) {
             this.type = type;
-            
+            while (index < table.length && table[index] == null) {
+                index++;
+            }
+            this.nextNode = table[index];
         }
         
         /**
@@ -1437,8 +1470,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public boolean hasNext() {
-            // TODO Auto-generated method stub
-            return false;
+            return nextNode != null;
         }
         
         /**
@@ -1447,10 +1479,26 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          * @return the next element in the iteration
          * @throws NoSuchElementException if the iteration has no more elements
          */
+        @SuppressWarnings("unchecked")
         @Override
         public E next() {
-            // TODO Auto-generated method stub
-            return null;
+            if (!this.hasNext()) {
+                throw new NoSuchElementException();
+            }
+            currentNode = nextNode;
+            nextNode = currentNode.next;
+            while (nextNode == null && index < table.length) {
+                index++;
+                if (index < table.length) {
+                    nextNode = table[index];
+                }
+            }
+            switch (type) {
+                case ENTRIES: return (E)currentNode;
+                case KEYS: return (E)currentNode.key;
+                case VALUES: return (E)currentNode.value;
+                default: throw new IllegalStateException("Bad Iterator type");
+            }
         }
         
         /**
@@ -1466,7 +1514,11 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public void remove() {
-            // TODO Auto-generated method stub
+            if (currentNode == null) {
+                throw new IllegalStateException();
+            }
+            MyHashTable.this.remove(currentNode.key);
+            currentNode = null;
         }
         
         /**
@@ -1490,6 +1542,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                 action.accept(this.next());
             }
         }
+        
     }
     
     /**
@@ -1536,11 +1589,11 @@ public final class MyHashTable<K, V> implements Map<K, V> {
      */
     @Override
     public String toString() {
-        StringJoiner resultJoiner = new StringJoiner(", ", "{", "}");
+        StringJoiner joiner = new StringJoiner(", ", "{", "}");
         for (Entry<K, V> entry : this.entrySet()) {
-            resultJoiner.add(entry.toString());
+            joiner.add(entry.toString());
         }
-        return resultJoiner.toString();
+        return joiner.toString();
     }
     
     private int hashToIndex(Object obj) {
