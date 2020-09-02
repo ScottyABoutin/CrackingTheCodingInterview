@@ -78,7 +78,8 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         
         /**
          * Returns the value corresponding to this entry. If the mapping has been removed from the
-         * backing map (by the iterator's remove operation), the results of this call are undefined.
+         * backing map (such as by a view's iterator's remove operation), the results of this call
+         * are undefined.
          * 
          * @return the value corresponding to this entry
          */
@@ -89,8 +90,8 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         
         /**
          * Replaces the value corresponding to this entry with the specified value. This writes
-         * through to the map. The behavior of this call is undefined if the mapping has already
-         * been removed from the map (by the iterator's remove operation).
+         * through to the map. If the mapping has been removed from the backing map (such as by the
+         * view's iterator's remove operation), the results of this call are undefined.
          * 
          * @param value new value to be stored in this entry
          * @return old value corresponding to the entry
@@ -113,7 +114,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          * the Map.Entry interface.
          * 
          * @param o object to be compared for equality with this map entry
-         * @return true if the specified object is equal to this map entry
+         * @return true if the specified object is a map entry with an equal key and an equal value
          */
         @Override
         public boolean equals(Object o) {
@@ -140,7 +141,8 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         /**
          * Returns a String representation of this map entry. This implementation returns the string
          * representation of this entry's key followed by the equals character ("=") followed by the
-         * string representation of this entry's value.
+         * string representation of this entry's value. This format is subject to change in future
+         * versions.
          * 
          * @return a String representation of this map entry
          */
@@ -151,6 +153,8 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     }
     
     private Node<K, V>[] table;
+    // This can be negative: this means the number of elements has rolled over. May need plan for
+    // more than 2^32 elements.
     private int size = 0;
     
     // Cached collections, initialized on first access
@@ -158,11 +162,21 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     private Set<K> keySet;
     private Collection<V> values;
     
+    /**
+     * Creates a non-rehashable HashTable with a capacity of 10 elements. This is for testing
+     * purposes: this will be changed to support rehashing, and will be rebalanced at that time.
+     */
     @SuppressWarnings("unchecked")
     public MyHashTable() {
         table = (Node<K, V>[]) new Node<?, ?>[10];
     }
     
+    /**
+     * Determines the index that the supplied object will be stored at.
+     * 
+     * @param obj the object being stored - never {@code null}
+     * @return an index that fits in the table
+     */
     private int hashToIndex(Object obj) {
         int index = obj.hashCode() % table.length;
         if (index == Integer.MIN_VALUE) {
@@ -177,19 +191,19 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     
     /**
      * Returns the number of key-value mappings in this map. If the map contains more than
-     * Integer.MAX_VALUE elements, returns Integer.MAX_VALUE.
+     * {@code Integer.MAX_VALUE} elements, returns {@code Integer.MAX_VALUE}.
      * 
      * @return the number of key-value mappings in this map
      */
     @Override
     public int size() {
-        return size;
+        return (size < 0) ? Integer.MAX_VALUE : size;
     }
     
     /**
-     * Returns true if this map contains no key-value mappings.
+     * Returns {@code true} if this map contains no key-value mappings.
      * 
-     * @return true if this map contains no key-value mappings
+     * @return {@code true} if this map contains no key-value mappings
      */
     @Override
     public boolean isEmpty() {
@@ -197,13 +211,13 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     }
     
     /**
-     * Returns true if this map contains a mapping for the specified key. More formally, returns
-     * true if and only if this map contains a mapping for a key k such that Objects.equals(key, k).
-     * (There can be at most one such mapping.)
+     * Returns {@code true} if this map contains a mapping for the specified key. More formally,
+     * returns {@code true} if and only if this map contains a mapping for a key k such that
+     * {@code Objects.equals(key, k)}. (There can be at most one such mapping.)
      * 
      * @param key key whose presence in this map is to be tested
-     * @return true if this map contains a mapping for the specified key
-     * @throws NullPointerException if the specified key is null
+     * @return {@code true} if this map contains a mapping for the specified key
+     * @throws NullPointerException if the specified key is {@code null}
      */
     @Override
     public boolean containsKey(Object key) {
@@ -219,13 +233,13 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     }
     
     /**
-     * Returns true if this map maps one or more keys to the specified value. More formally, returns
-     * true if and only if this map contains at least one mapping to a value v such that
-     * Objects.equals(value, v).
+     * Returns {@code true} if this map maps one or more keys to the specified value. More formally,
+     * returns {@code true} if and only if this map contains at least one mapping to a value v such
+     * that {@code Objects.equals(value, v)}.
      * 
-     * @param value - value whose presence in this map is to be tested
-     * @return true if this map maps one or more keys to the specified value
-     * @throws NullPointerException if the specified value is null
+     * @param value value whose presence in this map is to be tested
+     * @return {@code true} if this map maps one or more keys to the specified value
+     * @throws NullPointerException if the specified value is {@code null}
      */
     @Override
     public boolean containsValue(Object value) {
@@ -244,15 +258,15 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     }
     
     /**
-     * Returns the value to which the specified key is mapped, or null if this map contains no
-     * mapping for the key. More formally, if this map contains a mapping from a key k to a value v
-     * such that Objects.equals(key, k), then this method returns v; otherwise it returns null.
-     * (There can be at most one such mapping.)
+     * Returns the value to which the specified key is mapped, or {@code null} if this map contains
+     * no mapping for the key. More formally, if this map contains a mapping from a key k to a value
+     * v such that {@code Objects.equals(key, k)}, then this method returns v; otherwise it returns
+     * {@code null}. (There can be at most one such mapping.)
      * 
      * @param key the key whose associated value is to be returned
-     * @return the value to which the specified key is mapped, or null if this map contains no
-     *             mapping for the key
-     * @throws NullPointerException if the specified key is null
+     * @return the value to which the specified key is mapped, or {@code null} if this map contains
+     *             no mapping for the key
+     * @throws NullPointerException if the specified key is {@code null}
      */
     @Override
     public V get(Object key) {
@@ -270,12 +284,14 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     /**
      * Associates the specified value with the specified key in this map. If the map previously
      * contained a mapping for the key, the old value is replaced by the specified value. (A map m
-     * is said to contain a mapping for a key k if and only if m.containsKey(k) would return true.)
+     * is said to contain a mapping for a key k if and only if {@code m.containsKey(k)} would return
+     * {@code true}.)
      * 
      * @param key   key with which the specified value is to be associated
      * @param value value to be associated with the specified key
-     * @return the previous value associated with key, or null if there was no mapping for key.
-     * @throws NullPointerException if the specified key or value is null
+     * @return the previous value associated with the key, or {@code null} if there was no mapping
+     *             for the key
+     * @throws NullPointerException if the specified key or value is {@code null}
      */
     @Override
     public V put(K key, V value) {
@@ -297,21 +313,23 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         } else {
             lastNode.next = node;
         }
-        size++;
+        // Since using integer overflow, -1 represents 2^32 elements.
+        if (size != -1) {
+            size++;
+        }
         return null;
-        
     }
     
     /**
      * Removes the mapping for a key from this map if it is present. More formally, if this map
-     * contains a mapping from key k to value v such that Objects.equals(key, k), that mapping is
+     * contains a mapping from key k to value v such that {@code Objects.equals(key, k)}, that mapping is
      * removed. (The map can contain at most one such mapping.) Returns the value to which this map
-     * previously associated the key, or null if the map contained no mapping for the key. The map
+     * previously associated the key, or {@code null} if the map contained no mapping for the key. The map
      * will not contain a mapping for the specified key once the call returns.
      * 
      * @param key key whose mapping is to be removed from the map
-     * @return the previous value associated with key, or null if there was no mapping for key.
-     * @throws NullPointerException if the specified key is null
+     * @return the previous value associated with key, or {@code null} if there was no mapping for key.
+     * @throws NullPointerException if the specified key is {@code null}
      */
     @Override
     public V remove(Object key) {
