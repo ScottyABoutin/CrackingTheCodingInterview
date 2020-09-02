@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -1438,7 +1439,12 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     }
     
     private enum IterType {
-        KEYS, VALUES, ENTRIES
+        KEYS, VALUES, ENTRIES;
+        
+        @Override
+        public String toString() {
+            return this.name().toLowerCase(Locale.US);
+        }
     }
     
     /**
@@ -1541,6 +1547,23 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             while (this.hasNext()) {
                 action.accept(this.next());
             }
+        }
+        
+        /**
+         * Returns a string representation of this iterator that represents what it iterates over.
+         * It also textually represents whether the iterator has more elements, although code
+         * should use the hasNext() method rather than parsing this String. This format is subject
+         * to change in future versions.
+         *  
+         * @return a string representation of this iterator
+         */
+        @Override
+        public String toString() {
+            // Length is 13 + 7 (entries) + 10 + 5 (false)
+            StringBuilder builder = new StringBuilder(35);
+            builder.append("Iterator for ").append(type)
+                   .append(": hasNext=").append(this.hasNext());
+            return builder.toString();
         }
         
     }
