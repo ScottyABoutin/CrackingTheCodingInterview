@@ -23,8 +23,8 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * This class represents a working implementation of the Map Interface via a hashtable. It supports
- * all of the optional operations. It rejects all null keys and values. It is not thread-safe.
+ * A hashtable which maps keys to values. It supports all of the operations of {@code Map},
+ * including optional operations. It rejects {@code null} keys and values. It is not thread-safe.
  *
  * @param <K> the type of keys maintained by this map
  * @param <V> the type of mapped values
@@ -32,22 +32,34 @@ import java.util.stream.StreamSupport;
 public final class MyHashTable<K, V> implements Map<K, V> {
     
     /**
-     * This class represents a single entry in the map, notated by "Nodes" that make up a singly
-     * linked list. Note that K and V in this inner class do not necessarily correspond to the outer
-     * class's type parameters (although they will in practice).
+     * A single key-value entry in the map, notated by "Nodes" that make up a singly linked list.
+     * This implementation supports the optional setValue method. A node cannot contain
+     * {@code null}. Note that K and V in this inner class do not necessarily correspond to the
+     * outer class's type parameters, although they do in practice. Also, since this is a static
+     * nested class, K and V in this class have no way of accessing MyHashTable instances and
+     * therefore no way of accessing type information of the outer class.
      * 
-     * @param <K> the type of key a in the map this node belongs to
+     * @param <K> the type of key in the map this node belongs to
      * @param <V> the type of mapped values for the map this node belongs to
      */
     private static class Node<K, V> implements Entry<K, V> {
-        final K key;
-        V value;
+        /*
+         * While these are private, they can be accessed via a (Node) reference. They should only
+         * use public getters and setters to maintain non-nullability.
+         */
+        private final K key;
+        private V value;
+        
+        /*
+         * Non-private for ease of access and manipulation (in practice, not necessary, but
+         * communicates the idea).
+         */
         Node<K, V> next = null;
         
         /**
-         * Creates a Node holding the given key and value.
+         * Creates a Node holding the given non-null key and value.
          * 
-         * @throws NullPointerException if either the key or value are null.
+         * @throws NullPointerException if either the key or value are null
          */
         Node(K key, V value) {
             this.key = Objects.requireNonNull(key);
@@ -76,9 +88,9 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
         
         /**
-         * Replaces the value corresponding to this entry with the specified value. (Writes through
-         * to the map.) The behavior of this call is undefined if the mapping has already been
-         * removed from the map (by the iterator's remove operation).
+         * Replaces the value corresponding to this entry with the specified value. This writes
+         * through to the map. The behavior of this call is undefined if the mapping has already
+         * been removed from the map (by the iterator's remove operation).
          * 
          * @param value new value to be stored in this entry
          * @return old value corresponding to the entry
@@ -95,10 +107,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         
         /**
          * Compares the specified object with this entry for equality. Returns true if the given
-         * object is also a map entry and the two entries represent the same mapping. More formally,
-         * two entries e1 and e2 represent the same mapping if (e1.getKey()==null ?
-         * e2.getKey()==null : e1.getKey().equals(e2.getKey())) && (e1.getValue()==null ?
-         * e2.getValue()==null : e1.getValue().equals(e2.getValue()))
+         * object is also a map entry and the two entries represent the same mapping.
          * 
          * This ensures that the equals method works properly across different implementations of
          * the Map.Entry interface.
@@ -112,15 +121,14 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                 return false;
             }
             Entry<?, ?> entry = (Entry<?, ?>) o;
+            // This key and value cannot be null, so use them for equals method call
             return key.equals(entry.getKey()) && value.equals(entry.getValue());
         }
         
         /**
          * Returns the hash code value for this map entry. The hash code of a map entry e is defined
          * to be (e.getKey()==null ? 0 : e.getKey().hashCode()) ^ (e.getValue()==null ? 0 :
-         * e.getValue().hashCode()) This ensures that e1.equals(e2) implies that
-         * e1.hashCode()==e2.hashCode() for any two Entries e1 and e2, as required by the general
-         * contract of Object.hashCode.
+         * e.getValue().hashCode()).
          * 
          * @return the hash code value for this map entry
          */
@@ -2337,10 +2345,10 @@ public final class MyHashTable<K, V> implements Map<K, V> {
      * 
      * Parameters:
      * 
-     * @param key key with which the resulting value is to be associated
-     * @param value the non-null value to be merged with the existing value associated with the key
-     *            or, if no existing value or a null value is associated with the key, to be
-     *            associated with the key
+     * @param key               key with which the resulting value is to be associated
+     * @param value             the non-null value to be merged with the existing value associated
+     *                              with the key or, if no existing value or a null value is
+     *                              associated with the key, to be associated with the key
      * @param remappingFunction the remapping function to recompute a value if present
      * @return the new value associated with the specified key, or null if no value is associated
      *             with the key
@@ -2371,3 +2379,4 @@ public final class MyHashTable<K, V> implements Map<K, V> {
 }
 // TODO clean up JavaDocs, more efficient implementations, rehashing, ConcurrentModificationException
 // TODO possibly refactor (after efficient implementations) to reuse patterns (replacing entry values, etc)
+// TODO stretch goal: serialization, cloneable, elements() + keys() -> Enumeration (legacy, but an interesting exercise)
