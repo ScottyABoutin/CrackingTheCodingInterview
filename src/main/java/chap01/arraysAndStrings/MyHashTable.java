@@ -366,7 +366,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public int size() {
-            return size;
+            return MyHashTable.this.size;
         }
         
         /**
@@ -376,7 +376,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public boolean isEmpty() {
-            return size() == 0;
+            return this.size() == 0;
         }
         
         /**
@@ -444,7 +444,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Object[] toArray() {
-            Object[] array = new Object[size];
+            Object[] array = new Object[this.size()];
             int i = 0;
             for (K key : this) {
                 array[i] = key;
@@ -483,7 +483,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         public <T> T[] toArray(T[] a) {
             Objects.requireNonNull(a);
             
-            List<K> list = new ArrayList<>(size);
+            List<K> list = new ArrayList<>(this.size());
             for (K key : this) {
                 list.add(key);
             }
@@ -516,7 +516,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         public <T> T[] toArray(IntFunction<T[]> generator) {
             Objects.requireNonNull(generator);
             
-            T[] array = generator.apply(size());
+            T[] array = generator.apply(this.size());
             return this.toArray(array);
         }
         
@@ -752,7 +752,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public int size() {
-            return size;
+            return MyHashTable.this.size();
         }
         
         /**
@@ -762,7 +762,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public boolean isEmpty() {
-            return size() == 0;
+            return this.size() == 0;
         }
         
         /**
@@ -840,7 +840,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Object[] toArray() {
-            Object[] array = new Object[size];
+            Object[] array = new Object[this.size()];
             int i = 0;
             for (V value : this) {
                 array[i] = value;
@@ -890,7 +890,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         public <T> T[] toArray(T[] a) {
             Objects.requireNonNull(a);
             
-            List<V> list = new ArrayList<>(size);
+            List<V> list = new ArrayList<>(this.size());
             for (V value : this) {
                 list.add(value);
             }
@@ -923,7 +923,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         public <T> T[] toArray(IntFunction<T[]> generator) {
             Objects.requireNonNull(generator);
             
-            T[] array = generator.apply(size());
+            T[] array = generator.apply(this.size());
             return this.toArray(array);
         }
         
@@ -1204,7 +1204,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public int size() {
-            return size;
+            return MyHashTable.this.size;
         }
         
         /**
@@ -1214,7 +1214,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public boolean isEmpty() {
-            return size() == 0;
+            return this.size() == 0;
         }
         
         /**
@@ -1288,7 +1288,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Object[] toArray() {
-            Object[] array = new Object[size];
+            Object[] array = new Object[this.size()];
             int i = 0;
             for (Entry<K, V> entry : this) {
                 array[i] = entry;
@@ -1325,7 +1325,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public <T> T[] toArray(T[] a) {
-            List<Entry<K, V>> list = new ArrayList<>(size);
+            List<Entry<K, V>> list = new ArrayList<>(this.size());
             for (Entry<K, V> entry : this) {
                 list.add(entry);
             }
@@ -1565,8 +1565,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                     Spliterator.DISTINCT | Spliterator.NONNULL | Spliterator.SIZED | Spliterator.SUBSIZED);
         }
         
-        // TODO Collection: spliterator, stream, parallelStream, toArray(IntGenerator), removeIf.
-        // Iterable: forEach
+        // TODO Collection: stream, parallelStream, removeIf.
         
     }
     
@@ -1580,8 +1579,6 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     }
     
     /**
-     * 
-     * 
      * @param <E> the type of elements returned by this iterator
      */
     private class Iter<E> implements Iterator<E> {
