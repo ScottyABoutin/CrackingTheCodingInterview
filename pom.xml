@@ -7,7 +7,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	
 	<name>Cracking the Coding Interview</name>
-	<url>http://maven.apache.org</url>
+	<url>https://github.com/ScottyABoutin/CrackingTheCodingInterview</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
