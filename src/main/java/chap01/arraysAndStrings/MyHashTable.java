@@ -140,7 +140,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     private Node<K, V>[] table;
     private int size = 0;
     
-    // Cached collections
+    // Cached collections, initialized on first access
     private Set<Entry<K, V>> entrySet;
     private Set<K> keySet;
     private Collection<V> values;
@@ -405,7 +405,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             if (this.isEmpty()) {
                 return Collections.emptyIterator();
             } else {
-                return new Iter<>(IterType.KEYS);
+                return new ViewIterator<>(IterType.KEYS);
             }
         }
         
@@ -716,8 +716,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                     Spliterator.DISTINCT | Spliterator.NONNULL | Spliterator.SIZED | Spliterator.SUBSIZED);
         }
         
-        // TODO Collection: stream, parallelStream, toArray(IntGenerator), removeIf. Iterable:
-        // forEach
+        // TODO Collection: stream, parallelStream, removeIf
     }
     
     /**
@@ -794,7 +793,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             if (this.isEmpty()) {
                 return Collections.emptyIterator();
             } else {
-                return new Iter<>(IterType.VALUES);
+                return new ViewIterator<>(IterType.VALUES);
             }
         }
         
@@ -1169,7 +1168,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             return joiner.toString();
         }
         
-        // TODO Collection: spliterator, stream, parallelStream. Iterable: forEach
+        // TODO Collection: spliterator, stream, parallelStream
     }
     
     /**
@@ -1249,7 +1248,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             if (this.isEmpty()) {
                 return Collections.emptyIterator();
             } else {
-                return new Iter<>(IterType.ENTRIES);
+                return new ViewIterator<>(IterType.ENTRIES);
             }
         }
         
@@ -1581,7 +1580,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     /**
      * @param <E> the type of elements returned by this iterator
      */
-    private class Iter<E> implements Iterator<E> {
+    private class ViewIterator<E> implements Iterator<E> {
         
         private Node<K, V>[] table = MyHashTable.this.table;
         private int index = 0;
@@ -1589,7 +1588,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         private Node<K, V> nextNode;
         private IterType type;
         
-        public Iter(IterType type) {
+        public ViewIterator(IterType type) {
             this.type = type;
             while (index < table.length && table[index] == null) {
                 index++;
@@ -1762,5 +1761,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         // TODO rehash if index is OOB (fails on empty table)
         return index;
     }
+    
+    
     
 }
