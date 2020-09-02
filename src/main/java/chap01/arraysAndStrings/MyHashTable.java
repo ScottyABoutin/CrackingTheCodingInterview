@@ -13,9 +13,14 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.StringJoiner;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * This class represents a working implementation of the Map Interface via a hashtable. It supports
@@ -148,6 +153,18 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     @SuppressWarnings("unchecked")
     public MyHashTable() {
         table = (Node<K, V>[]) new Node<?, ?>[10];
+    }
+    
+    private int hashToIndex(Object obj) {
+        int index = obj.hashCode() % table.length;
+        if (index == Integer.MIN_VALUE) {
+            index = 0;
+        }
+        if (index < 0) {
+            index = -index;
+        }
+        // TODO rehash if index is OOB (fails on empty table)
+        return index;
     }
     
     /**
@@ -640,6 +657,33 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
         
         /**
+         * Removes all of the elements of this collection that satisfy the given predicate. Errors
+         * or runtime exceptions thrown during iteration or by the predicate are relayed to the
+         * caller. Implementation Requirements: The default implementation traverses all elements of
+         * the collection using its iterator(). Each matching element is removed using
+         * Iterator.remove(). If the collection's iterator does not support removal then an
+         * UnsupportedOperationException will be thrown on the first matching element.
+         * 
+         * @param filter a predicate which returns true for elements to be removed
+         * @return true if any elements were removed
+         * @throws NullPointerException if the specified filter is null
+         */
+        @Override
+        public boolean removeIf(Predicate<? super K> filter) {
+            Objects.requireNonNull(filter);
+            
+            boolean changed = false;
+            for (Iterator<K> iterator = this.iterator(); iterator.hasNext();) {
+                K key = iterator.next();
+                if (filter.test(key)) {
+                    iterator.remove();
+                    changed = true;
+                }
+            }
+            return changed;
+        }
+        
+        /**
          * Removes all of the elements from this set. The set will be empty after this call returns.
          */
         @Override
@@ -711,12 +755,35 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Spliterator<K> spliterator() {
-            // TODO can make more efficient?
             return Spliterators.spliterator(this,
                     Spliterator.DISTINCT | Spliterator.NONNULL | Spliterator.SIZED | Spliterator.SUBSIZED);
         }
         
-        // TODO Collection: stream, parallelStream, removeIf
+        /**
+         * Returns a sequential Stream with this collection as its source. This method should be
+         * overridden when the spliterator() method cannot return a spliterator that is IMMUTABLE,
+         * CONCURRENT, or late-binding. (See spliterator() for details.)
+         * 
+         * @return a sequential Stream over the elements in this collection
+         */
+        @Override
+        public Stream<K> stream() {
+            return StreamSupport.stream(this.spliterator(), false);
+        }
+        
+        /**
+         * Returns a possibly parallel Stream with this collection as its source. It is allowable
+         * for this method to return a sequential stream. This method should be overridden when the
+         * spliterator() method cannot return a spliterator that is IMMUTABLE, CONCURRENT, or
+         * late-binding. (See spliterator() for details.)
+         * 
+         * @return a possibly parallel Stream over the elements in this collection
+         */
+        
+        @Override
+        public Stream<K> parallelStream() {
+            return StreamSupport.stream(this.spliterator(), true);
+        }
     }
     
     /**
@@ -1168,7 +1235,68 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             return joiner.toString();
         }
         
-        // TODO Collection: spliterator, stream, parallelStream
+        /**
+         * Creates a Spliterator over the elements in this collection. Implementations should
+         * document characteristic values reported by the spliterator. Such characteristic values
+         * are not required to be reported if the spliterator reports Spliterator.SIZED and this
+         * collection contains no elements. The default implementation should be overridden by
+         * subclasses that can return a more efficient spliterator. In order to preserve expected
+         * laziness behavior for the stream() and parallelStream() methods, spliterators should
+         * either have the characteristic of IMMUTABLE or CONCURRENT, or be late-binding. If none of
+         * these is practical, the overriding class should describe the spliterator's documented
+         * policy of binding and structural interference, and should override the stream() and
+         * parallelStream() methods to create streams using a Supplier of the spliterator, as in:
+         * 
+         * Stream<E> s = StreamSupport.stream(() -> spliterator(), spliteratorCharacteristics)
+         * 
+         * These requirements ensure that streams produced by the stream() and parallelStream()
+         * methods will reflect the contents of the collection as of initiation of the terminal
+         * stream operation.
+         * 
+         * Specified by: spliterator in interface Iterable<E> Implementation Requirements: The
+         * default implementation creates a late-binding spliterator from the collection's Iterator.
+         * The spliterator inherits the fail-fast properties of the collection's iterator. The
+         * created Spliterator reports Spliterator.SIZED.
+         * 
+         * Implementation Note: The created Spliterator additionally reports Spliterator.SUBSIZED.
+         * If a spliterator covers no elements then the reporting of additional characteristic
+         * values, beyond that of SIZED and SUBSIZED, does not aid clients to control, specialize or
+         * simplify computation. However, this does enable shared use of an immutable and empty
+         * spliterator instance (see Spliterators.emptySpliterator()) for empty collections, and
+         * enables clients to determine if such a spliterator covers no elements.
+         * 
+         * @return a Spliterator over the elements in this collection
+         */
+        @Override
+        public Spliterator<V> spliterator() {
+            return Spliterators.spliterator(this, Spliterator.NONNULL | Spliterator.SIZED | Spliterator.SUBSIZED);
+        }
+        
+        /**
+         * Returns a sequential Stream with this collection as its source. This method should be
+         * overridden when the spliterator() method cannot return a spliterator that is IMMUTABLE,
+         * CONCURRENT, or late-binding. (See spliterator() for details.)
+         * 
+         * @return a sequential Stream over the elements in this collection
+         */
+        @Override
+        public Stream<V> stream() {
+            return StreamSupport.stream(this.spliterator(), false);
+        }
+        
+        /**
+         * Returns a possibly parallel Stream with this collection as its source. It is allowable
+         * for this method to return a sequential stream. This method should be overridden when the
+         * spliterator() method cannot return a spliterator that is IMMUTABLE, CONCURRENT, or
+         * late-binding. (See spliterator() for details.)
+         * 
+         * @return a possibly parallel Stream over the elements in this collection
+         */
+        
+        @Override
+        public Stream<V> parallelStream() {
+            return StreamSupport.stream(this.spliterator(), true);
+        }
     }
     
     /**
@@ -1498,6 +1626,33 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
         
         /**
+         * Removes all of the elements of this collection that satisfy the given predicate. Errors
+         * or runtime exceptions thrown during iteration or by the predicate are relayed to the
+         * caller. Implementation Requirements: The default implementation traverses all elements of
+         * the collection using its iterator(). Each matching element is removed using
+         * Iterator.remove(). If the collection's iterator does not support removal then an
+         * UnsupportedOperationException will be thrown on the first matching element.
+         * 
+         * @param filter a predicate which returns true for elements to be removed
+         * @return true if any elements were removed
+         * @throws NullPointerException if the specified filter is null
+         */
+        @Override
+        public boolean removeIf(Predicate<? super Entry<K, V>> filter) {
+            Objects.requireNonNull(filter);
+            
+            boolean changed = false;
+            for (Iterator<Entry<K, V>> iterator = this.iterator(); iterator.hasNext();) {
+                Entry<K, V> entry = iterator.next();
+                if (filter.test(entry)) {
+                    iterator.remove();
+                    changed = true;
+                }
+            }
+            return changed;
+        }
+        
+        /**
          * Removes all of the elements from this set. The set will be empty after this call returns.
          */
         @Override
@@ -1559,13 +1714,35 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Spliterator<Entry<K, V>> spliterator() {
-            // TODO can make more efficient?
             return Spliterators.spliterator(this,
                     Spliterator.DISTINCT | Spliterator.NONNULL | Spliterator.SIZED | Spliterator.SUBSIZED);
         }
         
-        // TODO Collection: stream, parallelStream, removeIf.
+        /**
+         * Returns a sequential Stream with this collection as its source. This method should be
+         * overridden when the spliterator() method cannot return a spliterator that is IMMUTABLE,
+         * CONCURRENT, or late-binding. (See spliterator() for details.)
+         * 
+         * @return a sequential Stream over the elements in this collection
+         */
+        @Override
+        public Stream<Entry<K, V>> stream() {
+            return StreamSupport.stream(this.spliterator(), false);
+        }
         
+        /**
+         * Returns a possibly parallel Stream with this collection as its source. It is allowable
+         * for this method to return a sequential stream. This method should be overridden when the
+         * spliterator() method cannot return a spliterator that is IMMUTABLE, CONCURRENT, or
+         * late-binding. (See spliterator() for details.)
+         * 
+         * @return a possibly parallel Stream over the elements in this collection
+         */
+        
+        @Override
+        public Stream<Entry<K, V>> parallelStream() {
+            return StreamSupport.stream(this.spliterator(), true);
+        }
     }
     
     private enum IterType {
@@ -1750,18 +1927,447 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         return joiner.toString();
     }
     
-    private int hashToIndex(Object obj) {
-        int index = obj.hashCode() % table.length;
-        if (index == Integer.MIN_VALUE) {
-            index = 0;
-        }
-        if (index < 0) {
-            index = -index;
-        }
-        // TODO rehash if index is OOB (fails on empty table)
-        return index;
+    /**
+     * Returns the value to which the specified key is mapped, or defaultValue if this map contains
+     * no mapping for the key. Implementation Requirements: The default implementation makes no
+     * guarantees about synchronization or atomicity properties of this method. Any implementation
+     * providing atomicity guarantees must override this method and document its concurrency
+     * properties.
+     * 
+     * @param key          the key whose associated value is to be returned
+     * @param defaultValue the default mapping of the key
+     * @return the value to which the specified key is mapped, or defaultValue if this map contains
+     *             no mapping for the key
+     * @throws NullPointerException if the specified key is null
+     */
+    @Override
+    public V getOrDefault(Object key, V defaultValue) {
+        V result = this.get(key);
+        return (result == null) ? defaultValue : result;
     }
     
-    // TODO default Map methods: getOrDefault, forEach, replaceAll, putIfAbsent, 
-    //      remove(key, value), replace(key, oldVal, newVal)
+    /**
+     * Performs the given action for each entry in this map until all entries have been processed or
+     * the action throws an exception. Unless otherwise specified by the implementing class, actions
+     * are performed in the order of entry set iteration (if an iteration order is specified.)
+     * Exceptions thrown by the action are relayed to the caller. Implementation Requirements: The
+     * default implementation is equivalent to, for this map:
+     * 
+     * for (Map.Entry<K, V> entry : map.entrySet()) action.accept(entry.getKey(), entry.getValue());
+     * 
+     * The default implementation makes no guarantees about synchronization or atomicity properties
+     * of this method. Any implementation providing atomicity guarantees must override this method
+     * and document its concurrency properties.
+     * 
+     * @param action The action to be performed for each entry
+     * @throws NullPointerException            if the specified action is null
+     * @throws ConcurrentModificationException if an entry is found to be removed during iteration
+     */
+    @Override
+    public void forEach(BiConsumer<? super K, ? super V> action) {
+        Objects.requireNonNull(action);
+        
+        for (Entry<K, V> entry : this.entrySet()) {
+            action.accept(entry.getKey(), entry.getValue());
+        }
+    }
+    
+    /**
+     * Replaces each entry's value with the result of invoking the given function on that entry
+     * until all entries have been processed or the function throws an exception. Exceptions thrown
+     * by the function are relayed to the caller. Implementation Requirements: The default
+     * implementation is equivalent to, for this map:
+     * 
+     * for (Map.Entry<K, V> entry : map.entrySet()) entry.setValue(function.apply(entry.getKey(),
+     * entry.getValue()));
+     * 
+     * The default implementation makes no guarantees about synchronization or atomicity properties
+     * of this method. Any implementation providing atomicity guarantees must override this method
+     * and document its concurrency properties.
+     * 
+     * @param function the function to apply to each entry
+     * @throws NullPointerException            if the specified function is null, or the specified
+     *                                             replacement value is null
+     * @throws ConcurrentModificationException if an entry is found to be removed during iteration
+     */
+    @Override
+    public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
+        // TODO more efficient: use internals
+        Objects.requireNonNull(function);
+        
+        for (Entry<K, V> entry : this.entrySet()) {
+            V newValue = function.apply(entry.getKey(), entry.getValue());
+            entry.setValue(Objects.requireNonNull(newValue));
+        }
+    }
+    
+    /**
+     * If the specified key is not already associated with a value (or is mapped to null) associates
+     * it with the given value and returns null, else returns the current value. Implementation
+     * Requirements: The default implementation is equivalent to, for this map:
+     * 
+     * V v = map.get(key); if (v == null) v = map.put(key, value);
+     * 
+     * return v;
+     * 
+     * The default implementation makes no guarantees about synchronization or atomicity properties
+     * of this method. Any implementation providing atomicity guarantees must override this method
+     * and document its concurrency properties.
+     * 
+     * @param key   key with which the specified value is to be associated
+     * @param value value to be associated with the specified key
+     * @return the previous value associated with the specified key, or null if there was no mapping
+     *             for the key.
+     * @throws NullPointerException if the specified key or value is null
+     */
+    @Override
+    public V putIfAbsent(K key, V value) {
+        // TODO more efficient: use internals
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(value);
+        
+        V storedValue = this.get(key);
+        if (storedValue == null) {
+            this.put(key, value);
+        }
+        return storedValue;
+    }
+    
+    /**
+     * Removes the entry for the specified key only if it is currently mapped to the specified
+     * value. Implementation Requirements: The default implementation is equivalent to, for this
+     * map:
+     * 
+     * if (map.containsKey(key) && Objects.equals(map.get(key), value)) { map.remove(key); return
+     * true; } else return false;
+     * 
+     * The default implementation makes no guarantees about synchronization or atomicity properties
+     * of this method. Any implementation providing atomicity guarantees must override this method
+     * and document its concurrency properties.
+     * 
+     * @param key   key with which the specified value is associated
+     * @param value value expected to be associated with the specified key
+     * @return true if the value was removed
+     * @throws NullPointerException if the specified key or value is null
+     */
+    @Override
+    public boolean remove(Object key, Object value) {
+        // TODO more efficient: use internals
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(value);
+        
+        V storedValue = this.get(key);
+        if (storedValue.equals(value)) {
+            this.remove(key);
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    /**
+     * Replaces the entry for the specified key only if currently mapped to the specified value.
+     * Implementation Requirements: The default implementation is equivalent to, for this map:
+     * 
+     * if (map.containsKey(key) && Objects.equals(map.get(key), value)) { map.put(key, newValue);
+     * return true; } else return false;
+     * 
+     * The default implementation does not throw NullPointerException for maps that do not support
+     * null values if oldValue is null unless newValue is also null. The default implementation
+     * makes no guarantees about synchronization or atomicity properties of this method. Any
+     * implementation providing atomicity guarantees must override this method and document its
+     * concurrency properties.
+     * 
+     * @param key      key with which the specified value is associated
+     * @param oldValue value expected to be associated with the specified key
+     * @param newValue value to be associated with the specified key
+     * @return true if the value was replaced
+     * @throws NullPointerException if a specified key, oldValue, or newValue is null
+     */
+    @Override
+    public boolean replace(K key, V oldValue, V newValue) {
+        // TODO more efficient: use internals
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(oldValue);
+        Objects.requireNonNull(newValue);
+        
+        V storedValue = this.get(key);
+        // Also returns false on null
+        if (oldValue.equals(storedValue)) {
+            this.put(key, newValue);
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    /**
+     * Replaces the entry for the specified key only if it is currently mapped to some value.
+     * Implementation Requirements: The default implementation is equivalent to, for this map:
+     * 
+     * if (map.containsKey(key)) { return map.put(key, value); } else return null;
+     * 
+     * The default implementation makes no guarantees about synchronization or atomicity properties
+     * of this method. Any implementation providing atomicity guarantees must override this method
+     * and document its concurrency properties.
+     * 
+     * @param key   key with which the specified value is associated
+     * @param value value to be associated with the specified key
+     * @return the previous value associated with the specified key, or null if there was no mapping
+     *             for the key.
+     * @throws NullPointerException if the specified key or value is null
+     */
+    @Override
+    public V replace(K key, V value) {
+        // TODO more efficient: use internals
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(value);
+        
+        if (this.containsKey(key)) {
+            return this.put(key, value);
+        } else {
+            return null;
+        }
+    }
+    
+    /**
+     * If the specified key is not already associated with a value (or is mapped to null), attempts
+     * to compute its value using the given mapping function and enters it into this map unless
+     * null. If the mapping function returns null, no mapping is recorded. If the mapping function
+     * itself throws an (unchecked) exception, the exception is rethrown, and no mapping is
+     * recorded. The most common usage is to construct a new object serving as an initial mapped
+     * value or memoized result, as in:
+     * 
+     * map.computeIfAbsent(key, k -> new Value(f(k)));
+     * 
+     * Or to implement a multi-value map, Map<K,Collection<V>>, supporting multiple values per key:
+     * 
+     * map.computeIfAbsent(key, k -> new HashSet<V>()).add(v);
+     * 
+     * The mapping function should not modify this map during computation.
+     * 
+     * Implementation Requirements: The default implementation is equivalent to the following steps
+     * for this map, then returning the current value or null if now absent:
+     * 
+     * if (map.get(key) == null) { V newValue = mappingFunction.apply(key); if (newValue != null)
+     * map.put(key, newValue); }
+     * 
+     * The default implementation makes no guarantees about detecting if the mapping function
+     * modifies this map during computation and, if appropriate, reporting an error. Non-concurrent
+     * implementations should override this method and, on a best-effort basis, throw a
+     * ConcurrentModificationException if it is detected that the mapping function modifies this map
+     * during computation. Concurrent implementations should override this method and, on a
+     * best-effort basis, throw an IllegalStateException if it is detected that the mapping function
+     * modifies this map during computation and as a result computation would never complete.
+     * 
+     * The default implementation makes no guarantees about synchronization or atomicity properties
+     * of this method. Any implementation providing atomicity guarantees must override this method
+     * and document its concurrency properties. In particular, all implementations of subinterface
+     * ConcurrentMap must document whether the mapping function is applied once atomically only if
+     * the value is not present.
+     * 
+     * @param key             key with which the specified value is to be associated
+     * @param mappingFunction the mapping function to compute a value
+     * @return the current (existing or computed) value associated with the specified key, or null
+     *             if the computed value is null
+     * @throws NullPointerException if the specified key or the mappingFunction is null
+     */
+    @Override
+    public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+        // TODO more efficient: use internals
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(mappingFunction);
+        
+        V value = this.get(key);
+        if (value == null) {
+            value = mappingFunction.apply(key);
+            if (value != null) {
+                this.put(key, value);
+            }
+        }
+        return value;
+    }
+    
+    /**
+     * If the value for the specified key is present and non-null, attempts to compute a new mapping
+     * given the key and its current mapped value. If the remapping function returns null, the
+     * mapping is removed. If the remapping function itself throws an (unchecked) exception, the
+     * exception is rethrown, and the current mapping is left unchanged.
+     * 
+     * The remapping function should not modify this map during computation.
+     * 
+     * Implementation Requirements: The default implementation is equivalent to performing the
+     * following steps for this map, then returning the current value or null if now absent:
+     * 
+     * if (map.get(key) != null) { V oldValue = map.get(key); V newValue =
+     * remappingFunction.apply(key, oldValue); if (newValue != null) map.put(key, newValue); else
+     * map.remove(key); }
+     * 
+     * The default implementation makes no guarantees about detecting if the remapping function
+     * modifies this map during computation and, if appropriate, reporting an error. Non-concurrent
+     * implementations should override this method and, on a best-effort basis, throw a
+     * ConcurrentModificationException if it is detected that the remapping function modifies this
+     * map during computation. Concurrent implementations should override this method and, on a
+     * best-effort basis, throw an IllegalStateException if it is detected that the remapping
+     * function modifies this map during computation and as a result computation would never
+     * complete.
+     * 
+     * The default implementation makes no guarantees about synchronization or atomicity properties
+     * of this method. Any implementation providing atomicity guarantees must override this method
+     * and document its concurrency properties. In particular, all implementations of subinterface
+     * ConcurrentMap must document whether the remapping function is applied once atomically only if
+     * the value is not present.
+     * 
+     * @param key               key with which the specified value is to be associated
+     * @param remappingFunction the remapping function to compute a value
+     * @return the new value associated with the specified key, or null if none
+     * @throws NullPointerException if the specified key or the remappingFunction is null
+     */
+    @Override
+    public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        // TODO more efficient: use internals
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(remappingFunction);
+        
+        V oldValue = this.get(key);
+        if (oldValue == null) {
+            return null;
+        }
+        
+        V newValue = remappingFunction.apply(key, oldValue);
+        if (newValue == null) {
+            this.remove(key);
+        } else {
+            this.put(key, newValue);
+        }
+        return newValue;
+    }
+    
+    /**
+     * Attempts to compute a mapping for the specified key and its current mapped value (or null if
+     * there is no current mapping). For example, to either create or append a String msg to a value
+     * mapping:
+     * 
+     * map.compute(key, (k, v) -> (v == null) ? msg : v.concat(msg)) (Method merge() is often
+     * simpler to use for such purposes.) If the remapping function returns null, the mapping is
+     * removed (or remains absent if initially absent). If the remapping function itself throws an
+     * (unchecked) exception, the exception is rethrown, and the current mapping is left unchanged.
+     * 
+     * The remapping function should not modify this map during computation.
+     * 
+     * Implementation Requirements: The default implementation is equivalent to performing the
+     * following steps for this map, then returning the current value or null if absent:
+     * 
+     * V oldValue = map.get(key); V newValue = remappingFunction.apply(key, oldValue); if (oldValue
+     * != null) { if (newValue != null) map.put(key, newValue); else map.remove(key); } else { if
+     * (newValue != null) map.put(key, newValue); else return null; }
+     * 
+     * The default implementation makes no guarantees about detecting if the remapping function
+     * modifies this map during computation and, if appropriate, reporting an error. Non-concurrent
+     * implementations should override this method and, on a best-effort basis, throw a
+     * ConcurrentModificationException if it is detected that the remapping function modifies this
+     * map during computation. Concurrent implementations should override this method and, on a
+     * best-effort basis, throw an IllegalStateException if it is detected that the remapping
+     * function modifies this map during computation and as a result computation would never
+     * complete.
+     * 
+     * The default implementation makes no guarantees about synchronization or atomicity properties
+     * of this method. Any implementation providing atomicity guarantees must override this method
+     * and document its concurrency properties. In particular, all implementations of subinterface
+     * ConcurrentMap must document whether the remapping function is applied once atomically only if
+     * the value is not present.
+     * 
+     * @param key               key with which the specified value is to be associated
+     * @param remappingFunction the remapping function to compute a value
+     * @return the new value associated with the specified key, or null if none
+     * @throws NullPointerException if the specified key or the remappingFunction is null
+     */
+    @Override
+    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        // TODO more efficient: use internals
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(remappingFunction);
+        
+        V oldValue = this.get(key);
+        V newValue = remappingFunction.apply(key, oldValue);
+        if (newValue != null) {
+            this.put(key, newValue);
+        } else if (oldValue != null) {
+            this.remove(key);
+        }
+        return newValue;
+    }
+    
+    /**
+     * If the specified key is not already associated with a value or is associated with null,
+     * associates it with the given non-null value. Otherwise, replaces the associated value with
+     * the results of the given remapping function, or removes if the result is null. This method
+     * may be of use when combining multiple mapped values for a key. For example, to either create
+     * or append a String msg to a value mapping:
+     * 
+     * map.merge(key, msg, String::concat)
+     * 
+     * If the remapping function returns null, the mapping is removed. If the remapping function
+     * itself throws an (unchecked) exception, the exception is rethrown, and the current mapping is
+     * left unchanged.
+     * 
+     * The remapping function should not modify this map during computation.
+     * 
+     * Implementation Requirements: The default implementation is equivalent to performing the
+     * following steps for this map, then returning the current value or null if absent:
+     * 
+     * V oldValue = map.get(key); V newValue = (oldValue == null) ? value :
+     * remappingFunction.apply(oldValue, value); if (newValue == null) map.remove(key); else
+     * map.put(key, newValue);
+     * 
+     * The default implementation makes no guarantees about detecting if the remapping function
+     * modifies this map during computation and, if appropriate, reporting an error. Non-concurrent
+     * implementations should override this method and, on a best-effort basis, throw a
+     * ConcurrentModificationException if it is detected that the remapping function modifies this
+     * map during computation. Concurrent implementations should override this method and, on a
+     * best-effort basis, throw an IllegalStateException if it is detected that the remapping
+     * function modifies this map during computation and as a result computation would never
+     * complete.
+     * 
+     * The default implementation makes no guarantees about synchronization or atomicity properties
+     * of this method. Any implementation providing atomicity guarantees must override this method
+     * and document its concurrency properties. In particular, all implementations of subinterface
+     * ConcurrentMap must document whether the remapping function is applied once atomically only if
+     * the value is not present.
+     * 
+     * Parameters:
+     * 
+     * @param key key with which the resulting value is to be associated
+     * @param value the non-null value to be merged with the existing value associated with the key
+     *            or, if no existing value or a null value is associated with the key, to be
+     *            associated with the key
+     * @param remappingFunction the remapping function to recompute a value if present
+     * @return the new value associated with the specified key, or null if no value is associated
+     *             with the key
+     * @throws NullPointerException if the specified key, value, or remappingFunction is null
+     */
+    @Override
+    public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+        // TODO more efficient: use internals
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(value);
+        Objects.requireNonNull(remappingFunction);
+        
+        V oldValue = this.get(key);
+        if (oldValue == null) {
+            this.put(key, value);
+            return value;
+        }
+        
+        V newValue = remappingFunction.apply(oldValue, value);
+        if (newValue == null) {
+            this.remove(key);
+            return null;
+        } else {
+            this.put(key, newValue);
+            return newValue;
+        }
+    }
 }
+// TODO clean up JavaDocs, more efficient implementations, rehashing, ConcurrentModificationException
+// TODO possibly refactor (after efficient implementations) to reuse patterns (replacing entry values, etc)
