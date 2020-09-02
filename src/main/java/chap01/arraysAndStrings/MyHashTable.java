@@ -410,6 +410,30 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
         
         /**
+         * Performs the given action for each element of the Iterable until all elements have been
+         * processed or the action throws an exception. Actions are performed in the order of
+         * iteration, if that order is specified. Exceptions thrown by the action are relayed to the
+         * caller. The behavior of this method is unspecified if the action performs side-effects
+         * that modify the underlying source of elements, unless an overriding class has specified a
+         * concurrent modification policy.
+         * 
+         * Implementation Requirements: The default implementation behaves as if:
+         * 
+         * for (T t : this) action.accept(t);
+         * 
+         * @param action The action to be performed for each element
+         * @throws NullPointerException if the specified action is null
+         */
+        @Override
+        public void forEach(Consumer<? super K> action) {
+            Objects.requireNonNull(action);
+            
+            for (K key : this) {
+                action.accept(key);
+            }
+        }
+        
+        /**
          * Returns an array containing all of the elements in this set, in no particular order. The
          * returned array will be "safe" in that no references to it are maintained by this set. (In
          * other words, this method must allocate a new array even if this set is backed by an
@@ -464,6 +488,36 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                 list.add(key);
             }
             return list.toArray(a);
+        }
+        
+        /**
+         * Returns an array containing all of the elements in this collection, using the provided
+         * generator function to allocate the returned array. If this collection makes any
+         * guarantees as to what order its elements are returned by its iterator, this method must
+         * return the elements in the same order. This method acts as a bridge between array-based
+         * and collection-based APIs. It allows creation of an array of a particular runtime type.
+         * Use toArray() to create an array whose runtime type is Object[], or use toArray(T[]) to
+         * reuse an existing array. Suppose x is a collection known to contain only strings. The
+         * following code can be used to dump the collection into a newly allocated array of String:
+         * 
+         * String[] y = x.toArray(String[]::new); The default implementation calls the generator
+         * function with zero and then passes the resulting array to toArray(T[]).
+         * 
+         * @param T         the component type of the array to contain the collection
+         * @param generator a function which produces a new array of the desired type and the
+         *                      provided length
+         * @return an array containing all of the elements in this collection
+         * @throws ArrayStoreException  if the runtime type of any element in this collection is not
+         *                                  assignable to the runtime component type of the
+         *                                  generated array
+         * @throws NullPointerException if the generator function is null
+         */
+        @Override
+        public <T> T[] toArray(IntFunction<T[]> generator) {
+            Objects.requireNonNull(generator);
+            
+            T[] array = generator.apply(size());
+            return this.toArray(array);
         }
         
         /**
@@ -745,6 +799,30 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
         
         /**
+         * Performs the given action for each element of the Iterable until all elements have been
+         * processed or the action throws an exception. Actions are performed in the order of
+         * iteration, if that order is specified. Exceptions thrown by the action are relayed to the
+         * caller. The behavior of this method is unspecified if the action performs side-effects
+         * that modify the underlying source of elements, unless an overriding class has specified a
+         * concurrent modification policy.
+         * 
+         * Implementation Requirements: The default implementation behaves as if:
+         * 
+         * for (T t : this) action.accept(t);
+         * 
+         * @param action The action to be performed for each element
+         * @throws NullPointerException if the specified action is null
+         */
+        @Override
+        public void forEach(Consumer<? super V> action) {
+            Objects.requireNonNull(action);
+            
+            for (V value : this) {
+                action.accept(value);
+            }
+        }
+        
+        /**
          * Returns an array containing all of the elements in this collection. If this collection
          * makes any guarantees as to what order its elements are returned by its iterator, this
          * method must return the elements in the same order. The returned array's runtime component
@@ -845,7 +923,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         public <T> T[] toArray(IntFunction<T[]> generator) {
             Objects.requireNonNull(generator);
             
-            T[] array = generator.apply(size);
+            T[] array = generator.apply(size());
             return this.toArray(array);
         }
         
@@ -1176,6 +1254,30 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
         
         /**
+         * Performs the given action for each element of the Iterable until all elements have been
+         * processed or the action throws an exception. Actions are performed in the order of
+         * iteration, if that order is specified. Exceptions thrown by the action are relayed to the
+         * caller. The behavior of this method is unspecified if the action performs side-effects
+         * that modify the underlying source of elements, unless an overriding class has specified a
+         * concurrent modification policy.
+         * 
+         * Implementation Requirements: The default implementation behaves as if:
+         * 
+         * for (T t : this) action.accept(t);
+         * 
+         * @param action The action to be performed for each element
+         * @throws NullPointerException if the specified action is null
+         */
+        @Override
+        public void forEach(Consumer<? super Entry<K, V>> action) {
+            Objects.requireNonNull(action);
+            
+            for (Entry<K, V> entry : this) {
+                action.accept(entry);
+            }
+        }
+        
+        /**
          * Returns an array containing all of the elements in this set, in no particular order. The
          * returned array will be "safe" in that no references to it are maintained by this set. (In
          * other words, this method must allocate a new array even if this set is backed by an
@@ -1228,6 +1330,36 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                 list.add(entry);
             }
             return list.toArray(a);
+        }
+        
+        /**
+         * Returns an array containing all of the elements in this collection, using the provided
+         * generator function to allocate the returned array. If this collection makes any
+         * guarantees as to what order its elements are returned by its iterator, this method must
+         * return the elements in the same order. This method acts as a bridge between array-based
+         * and collection-based APIs. It allows creation of an array of a particular runtime type.
+         * Use toArray() to create an array whose runtime type is Object[], or use toArray(T[]) to
+         * reuse an existing array. Suppose x is a collection known to contain only strings. The
+         * following code can be used to dump the collection into a newly allocated array of String:
+         * 
+         * String[] y = x.toArray(String[]::new); The default implementation calls the generator
+         * function with zero and then passes the resulting array to toArray(T[]).
+         * 
+         * @param T         the component type of the array to contain the collection
+         * @param generator a function which produces a new array of the desired type and the
+         *                      provided length
+         * @return an array containing all of the elements in this collection
+         * @throws ArrayStoreException  if the runtime type of any element in this collection is not
+         *                                  assignable to the runtime component type of the
+         *                                  generated array
+         * @throws NullPointerException if the generator function is null
+         */
+        @Override
+        public <T> T[] toArray(IntFunction<T[]> generator) {
+            Objects.requireNonNull(generator);
+            
+            T[] array = generator.apply(this.size());
+            return this.toArray(array);
         }
         
         /**
@@ -1500,10 +1632,14 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                 }
             }
             switch (type) {
-                case ENTRIES: return (E)currentNode;
-                case KEYS: return (E)currentNode.key;
-                case VALUES: return (E)currentNode.value;
-                default: throw new IllegalStateException("Bad Iterator type");
+                case ENTRIES:
+                    return (E) currentNode;
+                case KEYS:
+                    return (E) currentNode.key;
+                case VALUES:
+                    return (E) currentNode.value;
+                default:
+                    throw new IllegalStateException("Bad Iterator type");
             }
         }
         
@@ -1551,18 +1687,17 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         
         /**
          * Returns a string representation of this iterator that represents what it iterates over.
-         * It also textually represents whether the iterator has more elements, although code
-         * should use the hasNext() method rather than parsing this String. This format is subject
-         * to change in future versions.
-         *  
+         * It also textually represents whether the iterator has more elements, although code should
+         * use the hasNext() method rather than parsing this String. This format is subject to
+         * change in future versions.
+         * 
          * @return a string representation of this iterator
          */
         @Override
         public String toString() {
             // Length is 13 + 7 (entries) + 10 + 5 (false)
             StringBuilder builder = new StringBuilder(35);
-            builder.append("Iterator for ").append(type)
-                   .append(": hasNext=").append(this.hasNext());
+            builder.append("Iterator for ").append(type).append(": hasNext=").append(this.hasNext());
             return builder.toString();
         }
         
