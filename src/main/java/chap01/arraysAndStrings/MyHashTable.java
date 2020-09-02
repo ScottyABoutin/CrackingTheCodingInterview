@@ -1762,6 +1762,6 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         return index;
     }
     
-    
-    
+    // TODO default Map methods: getOrDefault, forEach, replaceAll, putIfAbsent, 
+    //      remove(key, value), replace(key, oldVal, newVal)
 }
