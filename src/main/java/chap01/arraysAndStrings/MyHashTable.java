@@ -155,6 +155,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     private Node<K, V>[] table;
     // This can be negative: this means the number of elements has rolled over. May need plan for
     // more than 2^32 elements.
+    // Option 2: long. Probably going to go that way
     private int size = 0;
     
     // Cached collections, initialized on first access
@@ -163,12 +164,24 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     private Collection<V> values;
     
     /**
-     * Creates a non-rehashable HashTable with a capacity of 10 elements. This is for testing
+     * Creates a new non-rehashable hashtable with a capacity of 10 buckets. This is for testing
      * purposes: this will be changed to support rehashing, and will be rebalanced at that time.
      */
     @SuppressWarnings("unchecked")
     public MyHashTable() {
         table = (Node<K, V>[]) new Node<?, ?>[10];
+    }
+    
+    /**
+     * Constructs a new non-rehashable hashtable with the same mappings as the given Map.
+     * 
+     * @param m the map whose mappings are to be placed in this map
+     * @throws NullPointerException if the specified map is null
+     */
+    public MyHashTable(Map<? extends K, ? extends V> m) {
+        this();
+        Objects.requireNonNull(m);
+        this.putAll(m);
     }
     
     /**
@@ -322,13 +335,14 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     
     /**
      * Removes the mapping for a key from this map if it is present. More formally, if this map
-     * contains a mapping from key k to value v such that {@code Objects.equals(key, k)}, that mapping is
-     * removed. (The map can contain at most one such mapping.) Returns the value to which this map
-     * previously associated the key, or {@code null} if the map contained no mapping for the key. The map
-     * will not contain a mapping for the specified key once the call returns.
+     * contains a mapping from key k to value v such that {@code Objects.equals(key, k)}, that
+     * mapping is removed. (The map can contain at most one such mapping.) Returns the value to
+     * which this map previously associated the key, or {@code null} if the map contained no mapping
+     * for the key. The map will not contain a mapping for the specified key once the call returns.
      * 
      * @param key key whose mapping is to be removed from the map
-     * @return the previous value associated with key, or {@code null} if there was no mapping for key.
+     * @return the previous value associated with key, or {@code null} if there was no mapping for
+     *             key.
      * @throws NullPointerException if the specified key is {@code null}
      */
     @Override
