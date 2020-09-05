@@ -526,7 +526,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          * to dump the set into a newly allocated array of String: String[] y = x.toArray(new
          * String[0]); Note that toArray(new Object[0]) is identical in function to toArray().
          * 
-         * @param <T> the component type of the array to contain the collection
+         * @param T the component type of the array to contain the collection
          * @param a   the array into which the elements of this set are to be stored, if it is big
          *                enough; otherwise, a new array of the same runtime type is allocated for
          *                this purpose.
@@ -1480,7 +1480,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          * to dump the set into a newly allocated array of String: String[] y = x.toArray(new
          * String[0]); Note that toArray(new Object[0]) is identical in function to toArray().
          * 
-         * @param <T> the component type of the array to contain the collection
+         * @param T the component type of the array to contain the collection
          * @param a   the array into which the elements of this set are to be stored, if it is big
          *                enough; otherwise, a new array of the same runtime type is allocated for
          *                this purpose.
