@@ -191,22 +191,6 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     }
     
     /**
-     * Determines the index that the supplied object will be stored at.
-     * 
-     * @param obj the object being stored - never {@code null}
-     * @return an index that fits in the table
-     */
-    private int hashToIndex(Object obj) {
-        // Table.length must not be 0, or this will throw ArithmeticException
-        int index = obj.hashCode() % table.length;
-        if (index < 0) {
-            index = -index;
-        }
-        // TODO rehash if index is OOB (fails on empty table)
-        return index;
-    }
-    
-    /**
      * Returns the number of key-value mappings in this map. If the map contains more than
      * {@code Integer.MAX_VALUE} elements, returns {@code Integer.MAX_VALUE}.
      * 
@@ -352,7 +336,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     @Override
     public V remove(Object key) {
         Objects.requireNonNull(key);
-
+        
         int index = hashToIndex(key);
         for (Node<K, V> node = table[index], prevNode = null; node != null; prevNode = node, node = node.next) {
             if (node.getKey().equals(key)) {
@@ -367,6 +351,22 @@ public final class MyHashTable<K, V> implements Map<K, V> {
             }
         }
         return null;
+    }
+    
+    /**
+     * Determines the index that the supplied object will be stored at.
+     * 
+     * @param obj the object being stored - never {@code null}
+     * @return an index that fits in the table
+     */
+    private int hashToIndex(Object obj) {
+        // Table.length must not be 0, or this will throw ArithmeticException
+        int index = obj.hashCode() % table.length;
+        if (index < 0) {
+            index = -index;
+        }
+        // TODO rehash if index is OOB (fails on empty table)
+        return index;
     }
     
     /**
@@ -956,7 +956,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Iterator<K> iterator() {
-            return MyHashTable.this.iterator(this, IterType.KEYS);
+            return new KeyIterator();
         }
         
         /**
@@ -1387,7 +1387,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Iterator<V> iterator() {
-            return MyHashTable.this.iterator(this, IterType.VALUES);
+            return new ValueIterator();
         }
         
         /**
@@ -1896,7 +1896,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public Iterator<Entry<K, V>> iterator() {
-            return MyHashTable.this.iterator(this, IterType.ENTRIES);
+            return new EntryIterator();
         }
         
         /**
@@ -2264,61 +2264,34 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
     }
     
-    /**
-     * Represents the type of iterator, since all collection view iterators return an instance of
-     * this. Allows for efficiency of writing at the expense of casting. Note that this would
-     * ideally be nested in ViewIterator, but a nested enum must be nested in either a top-level or
-     * a static nested type, and ViewIterator is an instance inner class.
-     *
-     */
-    private enum IterType {
-        KEYS, VALUES, ENTRIES;
-        
-        @Override
-        public String toString() {
-            return this.name().toLowerCase(Locale.US);
-        }
-    }
+    //-------------------------------------------------------------------------
+    // Iterators
+    //-------------------------------------------------------------------------
     
     /**
-     * @param E          the type of elements returned by this iterator
-     * @param collection the collection being iterated over
-     * @param type       the type of elements being iterating over
-     * @return an Iterator of the proper type
-     */
-    private <E> Iterator<E> iterator(Collection<E> collection, IterType type) {
-        if (collection.isEmpty()) {
-            return Collections.emptyIterator();
-        } else {
-            return new ViewIterator<>(type);
-        }
-    }
-    
-    /**
-     * An iterator over one of the collection views of this hashtable.
+     * An iterator over the nodes of this hashtable.
      * 
      * @param <E> the type of elements returned by this iterator
      */
-    private class ViewIterator<E> implements Iterator<E> {
+    private abstract class HashIterator<E> implements Iterator<E> {
         private Node<K, V>[] table = MyHashTable.this.table;
         private int index = 0;
         private Node<K, V> currentNode = null;
         private Node<K, V> nextNode;
-        private IterType type;
         
         /**
-         * Creates an instance of an iterator that iterates over the outer hashtable's table.
-         * 
-         * @param type The type of elements that this is iterating over. This can be the nodes
-         *                 themselves (ENTRIES), or it can be one of the component types of the
-         *                 nodes (KEYS or VALUES).
+         * Creates an instance of an iterator that iterates over the outer hashtable's table. This
+         * does not account for an empty HashTable:
          */
-        private ViewIterator(IterType type) {
-            this.type = type;
+        private HashIterator() {
             while (index < table.length && table[index] == null) {
                 index++;
             }
-            this.nextNode = table[index];
+            if (index == table.length) {
+                this.nextNode = null;
+            } else {
+                this.nextNode = table[index];
+            }
         }
         
         /**
@@ -2333,14 +2306,12 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
         
         /**
-         * Returns the next element in the iteration.
+         * Returns the next node in the iteration.
          * 
-         * @return the next element in the iteration
+         * @return the next node in the iteration
          * @throws NoSuchElementException if the iteration has no more elements
          */
-        @SuppressWarnings("unchecked")
-        @Override
-        public E next() {
+        public final Node<K, V> nextNode() {
             if (!this.hasNext()) {
                 throw new NoSuchElementException();
             }
@@ -2352,16 +2323,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
                     nextNode = table[index];
                 }
             }
-            switch (type) {
-                case ENTRIES:
-                    return (E) currentNode;
-                case KEYS:
-                    return (E) currentNode.key;
-                case VALUES:
-                    return (E) currentNode.value;
-                default:
-                    throw new IllegalStateException("Bad Iterator type");
-            }
+            return currentNode;
         }
         
         /**
@@ -2416,12 +2378,50 @@ public final class MyHashTable<K, V> implements Map<K, V> {
          */
         @Override
         public String toString() {
-            // Length is 13 + 7 (entries) + 10 + 5 (false)
-            StringBuilder builder = new StringBuilder(35);
-            builder.append("Iterator for ").append(type).append(": hasNext=").append(this.hasNext());
+            StringBuilder builder = new StringBuilder();
+            builder.append("Iterator for ").append(this.type()).append(": hasNext=").append(this.hasNext());
             return builder.toString();
         }
         
+        public abstract String type();
+    }
+    
+    private final class KeyIterator extends HashIterator<K> {
+
+        @Override
+        public K next() {
+            return this.nextNode().getKey();
+        }
+
+        @Override
+        public String type() {
+            return "keys";
+        }
+    }
+    
+    private final class ValueIterator extends HashIterator<V> {
+
+        @Override
+        public V next() {
+            return this.nextNode().getValue();
+        }
+
+        @Override
+        public String type() {
+            return "values";
+        }
+    }
+    
+    private final class EntryIterator extends HashIterator<Map.Entry<K, V>> {
+        @Override
+        public Map.Entry<K, V> next() {
+            return this.nextNode();
+        }
+        
+        @Override
+        public String type() {
+            return "entries";
+        }
     }
 }
 // TODO clean up JavaDocs, more efficient implementations, rehashing, ConcurrentModificationException
