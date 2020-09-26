@@ -1,5 +1,5 @@
 package chap01.arraysAndStrings;
 
-public class MyStringBuilder {
+public final class MyStringBuilder {
     
 }

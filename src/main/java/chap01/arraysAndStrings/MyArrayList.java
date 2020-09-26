@@ -2,13 +2,16 @@ package chap01.arraysAndStrings;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.Spliterator;
+import java.util.StringJoiner;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
@@ -21,17 +24,33 @@ import java.util.stream.Stream;
  *
  * @param <E> the type of elements in this list
  */
-public class MyArrayList<E> implements List<E>, RandomAccess {
-    private static final int DEFAULT_SIZE = 10;
+public final class MyArrayList<E> implements List<E>, RandomAccess {
+    private static final int DEFAULT_LENGTH = 10;
     
     private Object[] elements;
     private int size;
+    
+    private void ensureCapacityWithNewElements(int numNewElements) {
+        if (size + numNewElements > elements.length) {
+            if (elements.length > (1 << 30)) {
+                elements = Arrays.copyOf(elements, Integer.MAX_VALUE);
+            } else {
+                elements = Arrays.copyOf(elements, elements.length * 2);
+            }
+        }
+    }
+    
+    private void checkBounds(int index) {
+        if (index < 0 || index > this.size()) {
+            throw new IndexOutOfBoundsException(index);
+        }
+    }
     
     /**
      * Constructs an empty list with an initial capacity of ten.
      */
     public MyArrayList() {
-        this(DEFAULT_SIZE);
+        this(DEFAULT_LENGTH);
     }
     
     /**
@@ -56,7 +75,7 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      * @throws NullPointerException if the specified collection is null
      */
     public MyArrayList(Collection<? extends E> c) {
-        this(c.size()); // throws NullPointerException
+        this(c.size()); // throws NullPointerException, must be first call
         this.addAll(c);
     }
     
@@ -102,7 +121,7 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public Iterator<E> iterator() {
-        return this.listIterator();
+        return new ArrayIterator();
     }
     
     /**
@@ -121,11 +140,10 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      * @param action The action to be performed for each element
      * @throws NullPointerException if the specified action is {@code null}
      */
-    @SuppressWarnings("unchecked")
     @Override
     public void forEach(Consumer<? super E> action) {
-        for (Object element : this) {
-            action.accept((E) element);
+        for (E element : this) {
+            action.accept(element);
         }
     }
     
@@ -180,7 +198,7 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
     public <T> T[] toArray(T[] a) {
         Objects.requireNonNull(a);
         
-        if(a.length < this.size()) {
+        if (a.length < this.size()) {
             return (T[]) Arrays.copyOf(elements, this.size(), a.getClass());
         } else {
             System.arraycopy(elements, 0, a, 0, this.size());
@@ -218,11 +236,11 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public <T> T[] toArray(IntFunction<T[]> generator) {
-        //TODO this fails if the generator function returns null, but not for a documented reason.
+        // TODO this fails if the generator function returns null, but not for a documented reason.
         Objects.requireNonNull(generator);
         
-        
-        return this.toArray(generator.apply(this.size()));
+        T[] generatedArray = generator.apply(this.size());
+        return this.toArray(generatedArray);
     }
     
     /**
@@ -233,23 +251,29 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public boolean add(E e) {
-        // TODO Auto-generated method stub
-        return false;
+        this.add(this.size(), e);
+        return true;
     }
     
     /**
-     * Removes the first occurrence of the specified element from this list, if it is present
-     * (optional operation). If this list does not contain the element, it is unchanged. More
-     * formally, removes the element with the lowest index i such that Objects.equals(o, get(i)) (if
-     * such an element exists). Returns true if this list contained the specified element (or
-     * equivalently, if this list changed as a result of the call).
+     * Removes the first occurrence of the specified element from this list, if it is present. If
+     * this list does not contain the element, it is unchanged. More formally, removes the element
+     * with the lowest index i such that Objects.equals(o, get(i)) (if such an element exists).
+     * Returns true if this list contained the specified element (or equivalently, if this list
+     * changed as a result of the call).
      * 
      * @param o element to be removed from this list, if present
      * @return {@code true} if this list contained the specified element
      */
     @Override
     public boolean remove(Object o) {
-        // TODO Auto-generated method stub
+        for (Iterator<E> iterator = this.iterator(); iterator.hasNext();) {
+            E element = iterator.next();
+            if (Objects.equals(o, element)) {
+                iterator.remove();
+                return true;
+            }
+        }
         return false;
     }
     
@@ -262,16 +286,22 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public boolean containsAll(Collection<?> c) {
-        // TODO Auto-generated method stub
-        return false;
+        Objects.requireNonNull(c);
+        
+        for (Object element : c) {
+            if (!this.contains(element)) {
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     /**
      * Appends all of the elements in the specified collection to the end of this list, in the order
-     * that they are returned by the specified collection's iterator (optional operation). The
-     * behavior of this operation is undefined if the specified collection is modified while the
-     * operation is in progress. (Note that this will occur if the specified collection is this
-     * list, and it's nonempty.)
+     * that they are returned by the specified collection's iterator. The behavior of this operation
+     * is undefined if the specified collection is modified while the operation is in progress.
+     * (Note that this will occur if the specified collection is this list, and it's nonempty.)
      * 
      * @param c collection containing elements to be added to this list
      * @return true if this list changed as a result of the call
@@ -279,18 +309,19 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public boolean addAll(Collection<? extends E> c) {
-        // TODO Auto-generated method stub
-        return false;
+        Objects.requireNonNull(c);
+        
+        return this.addAll(this.size(), c);
     }
     
     /**
      * Inserts all of the elements in the specified collection into this list at the specified
-     * position (optional operation). Shifts the element currently at that position (if any) and any
-     * subsequent elements to the right (increases their indices). The new elements will appear in
-     * this list in the order that they are returned by the specified collection's iterator. The
-     * behavior of this operation is undefined if the specified collection is modified while the
-     * operation is in progress. (Note that this will occur if the specified collection is this
-     * list, and it's nonempty.)
+     * position. Shifts the element currently at that position (if any) and any subsequent elements
+     * to the right (increases their indices). The new elements will appear in this list in the
+     * order that they are returned by the specified collection's iterator. The behavior of this
+     * operation is undefined if the specified collection is modified while the operation is in
+     * progress. (Note that this will occur if the specified collection is this list, and it's
+     * nonempty.)
      * 
      * @param index index at which to insert the first element from the specified collection
      * @param c     collection containing elements to be added to this list
@@ -300,13 +331,25 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public boolean addAll(int index, Collection<? extends E> c) {
-        // TODO Auto-generated method stub
-        return false;
+        Objects.requireNonNull(c);
+        this.checkBounds(index);
+        
+        if (c.isEmpty()) {
+            return false;
+        }
+        
+        this.ensureCapacityWithNewElements(c.size());
+        Object[] array = c.toArray();
+        for (int i = array.length - 1; i >= 0; i--) {
+            elements[index + i] = elements[i];
+            elements[i] = array[i];
+        }
+        
+        return true;
     }
     
     /**
-     * Removes from this list all of its elements that are contained in the specified collection
-     * (optional operation).
+     * Removes from this list all of its elements that are contained in the specified collection.
      * 
      * @param c collection containing elements to be removed from this list
      * @return true if this list changed as a result of the call
@@ -314,8 +357,9 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public boolean removeAll(Collection<?> c) {
-        // TODO Auto-generated method stub
-        return false;
+        Objects.requireNonNull(c);
+        
+        return this.removeIf(c::contains);
     }
     
     /**
@@ -332,8 +376,19 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public boolean removeIf(Predicate<? super E> filter) {
-        // TODO Auto-generated method stub
-        return List.super.removeIf(filter);
+        Objects.requireNonNull(filter);
+        
+        boolean changed = false;
+        // Iterating backwards to lessen the amount of array shifting as possible
+        for (ListIterator<E> iterator = this.listIterator(this.size()); iterator.hasPrevious();) {
+            E element = iterator.previous();
+            if (filter.test(element)) {
+                iterator.remove();
+                changed = true;
+            }
+        }
+        
+        return changed;
     }
     
     /**
@@ -347,8 +402,9 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public boolean retainAll(Collection<?> c) {
-        // TODO Auto-generated method stub
-        return false;
+        Objects.requireNonNull(c);
+        Predicate<E> contains = c::contains;
+        return this.removeIf(contains.negate());
     }
     
     /**
@@ -367,8 +423,14 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public void replaceAll(UnaryOperator<E> operator) {
-        // TODO Auto-generated method stub
-        List.super.replaceAll(operator);
+        Objects.requireNonNull(operator);
+        
+        ListIterator<E> listIterator = this.listIterator();
+        while (listIterator.hasNext()) {
+            E replacableItem = listIterator.next();
+            E newItem = operator.apply(replacableItem);
+            listIterator.set(newItem);
+        }
     }
     
     /**
@@ -408,18 +470,16 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public void sort(Comparator<? super E> c) {
-        // TODO Auto-generated method stub
-        List.super.sort(c);
+        Collections.sort(this, c); // TODO implement sorting?
     }
     
     /**
-     * Removes all of the elements from this list (optional operation). The list will be empty after
-     * this call returns.
+     * Removes all of the elements from this list. The list will be empty after this call returns.
      */
     @Override
     public void clear() {
-        // TODO Auto-generated method stub
-        
+        elements = new Object[DEFAULT_LENGTH];
+        size = 0;
     }
     
     /**
@@ -434,9 +494,28 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      * @return true if the specified object is equal to this list
      */
     @Override
-    public boolean equals(Object obj) {
-        // TODO Auto-generated method stub
-        return super.equals(obj);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof List<?>)) {
+            return false;
+        }
+        List<?> list = (List<?>) o;
+        if (this.size() != list.size()) {
+            return false;
+        }
+        ListIterator<E> thisIterator = this.listIterator();
+        ListIterator<?> thatIterator = list.listIterator();
+        while (thisIterator.hasNext()) {
+            E item1 = thisIterator.next();
+            Object item2 = thatIterator.next();
+            if (!Objects.equals(item1, item2)) {
+                return false;
+            }
+        }
+        return true;
+        
     }
     
     /**
@@ -452,8 +531,11 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public int hashCode() {
-        // TODO Auto-generated method stub
-        return super.hashCode();
+        int hashCode = 1;
+        for (E item : this) {
+            hashCode = 31 * hashCode + (item == null ? 0 : item.hashCode());
+        }
+        return hashCode;
     }
     
     /**
@@ -466,8 +548,11 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
-        return super.toString();
+        StringJoiner joiner = new StringJoiner(", ", "[", "]");
+        for (E item : this) {
+            joiner.add(String.valueOf(item));
+        }
+        return joiner.toString();
     }
     
     /**
@@ -477,15 +562,15 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      * @return the element at the specified position in this list
      * @throws IndexOutOfBoundsException if the index is out of range (index < 0 || index >= size())
      */
+    @SuppressWarnings("unchecked")
     @Override
     public E get(int index) {
-        // TODO Auto-generated method stub
-        return null;
+        this.checkBounds(index);
+        return (E) elements[index];
     }
     
     /**
-     * Replaces the element at the specified position in this list with the specified element
-     * (optional operation).
+     * Replaces the element at the specified position in this list with the specified element.
      * 
      * @param index   index of the element to replace
      * @param element element to be stored at the specified position
@@ -494,8 +579,11 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public E set(int index, E element) {
-        // TODO Auto-generated method stub
-        return null;
+        this.checkBounds(index);
+        @SuppressWarnings("unchecked")
+        E original = (E) elements[index];
+        elements[index] = element;
+        return original;
     }
     
     /**
@@ -509,8 +597,10 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public void add(int index, E element) {
-        // TODO Auto-generated method stub
-        
+        this.checkBounds(index);
+        this.ensureCapacityWithNewElements(size + 1);
+        elements[index] = element;
+        size++;
     }
     
     /**
@@ -524,8 +614,12 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public E remove(int index) {
-        // TODO Auto-generated method stub
-        return null;
+        this.checkBounds(index);
+        @SuppressWarnings("unchecked")
+        E removed = (E) elements[index];
+        System.arraycopy(this, index + 1, this, index, size - index);
+        size--;
+        return removed;
     }
     
     /**
@@ -559,8 +653,13 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public int lastIndexOf(Object o) {
-        // TODO Auto-generated method stub
-        return 0;
+        for (int i = size - 1; i >= 0; i--) {
+            Object item = elements[i];
+            if (Objects.equals(o, item)) {
+                return i;
+            }
+        }
+        return -1;
     }
     
     /**
@@ -570,8 +669,7 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public ListIterator<E> listIterator() {
-        // TODO Auto-generated method stub
-        return null;
+        return this.listIterator(0);
     }
     
     /**
@@ -588,9 +686,159 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public ListIterator<E> listIterator(int index) {
+        this.checkBounds(index);
         // TODO Auto-generated method stub
         return null;
     }
+    
+    /**
+    *
+    */
+   private class ArrayIterator implements Iterator<E> {
+       Object[] elements = MyArrayList.this.elements;
+       int currentIndex;
+       boolean removed = false;
+       
+       ArrayIterator() {
+           this(0);
+       }
+       
+       ArrayIterator(int currentIndex) {
+           this.currentIndex = currentIndex;
+       }
+       
+       /**
+        * Returns true if the iteration has more elements. (In other words, returns true if next()
+        * would return an element rather than throwing an exception.)
+        * 
+        * @return true if the iteration has more elements
+        */
+       @Override
+       public boolean hasNext() {
+           return currentIndex < MyArrayList.this.size();
+       }
+       
+       /**
+        * Returns the next element in the iteration.
+        * 
+        * @return the next element in the iteration
+        * @throws NoSuchElementException if the iteration has no more elements
+        */
+       @Override
+       public E next() {
+           if (!hasNext()) {
+               throw new NoSuchElementException();
+           }
+           @SuppressWarnings("unchecked")
+           E item = (E) MyArrayList.this.elements[currentIndex];
+           currentIndex++;
+           return item;
+       }
+       
+       /**
+        * Removes from the underlying collection the last element returned by this iterator. This
+        * method can be called only once per call to next(). The behavior of an iterator is
+        * unspecified if the underlying collection is modified while the iteration is in progress
+        * in any way other than by calling this method, unless an overriding class has specified a
+        * concurrent modification policy.
+        * 
+        * The behavior of an iterator is unspecified if this method is called after a call to the
+        * forEachRemaining method.
+        * 
+        * @throws IllegalStateException - if the next method has not yet been called, or the remove
+        *                                   method has already been called after the last call to
+        *                                   the next method
+        */
+       @Override
+       public void remove() {
+           // TODO Auto-generated method stub
+           Iterator.super.remove();
+       }
+       
+       /**
+        * Performs the given action for each remaining element until all elements have been
+        * processed or the action throws an exception. Actions are performed in the order of
+        * iteration, if that order is specified. Exceptions thrown by the action are relayed to the
+        * caller. The behavior of an iterator is unspecified if the action modifies the collection
+        * in any way (even by calling the remove method or other mutator methods of Iterator
+        * subtypes), unless an overriding class has specified a concurrent modification policy.
+        * 
+        * Subsequent behavior of an iterator is unspecified if the action throws an exception.
+        * 
+        * Implementation Requirements: The default implementation behaves as if:
+        * 
+        * 
+        * while (hasNext()) action.accept(next());
+        * 
+        * @param action The action to be performed for each element
+        * @throws NullPointerException if the specified action is null
+        */
+       @Override
+       public void forEachRemaining(Consumer<? super E> action) {
+           Objects.requireNonNull(action);
+           // TODO Auto-generated method stub
+           Iterator.super.forEachRemaining(action);
+       }
+       
+       /**
+        *
+        * Returns a string representation of this iterator that represents what it iterates over.
+        * It also textually represents whether the iterator has more elements, although code should
+        * use the hasNext() method rather than parsing this String. This format is subject to
+        * change in future versions.
+        * 
+        * @return a string representation of this iterator
+        */
+       @Override
+       public String toString() {
+           // TODO Auto-generated method stub
+           return super.toString();
+       }
+       
+   }
+   
+   /**
+    *
+    */
+   private class ArrayListIterator extends ArrayIterator implements ListIterator<E> {
+       
+       @Override
+       public boolean hasPrevious() {
+           // TODO Auto-generated method stub
+           return false;
+       }
+       
+       @Override
+       public E previous() {
+           // TODO Auto-generated method stub
+           return null;
+       }
+       
+       @Override
+       public int nextIndex() {
+           // TODO Auto-generated method stub
+           return 0;
+       }
+       
+       @Override
+       public int previousIndex() {
+           // TODO Auto-generated method stub
+           return 0;
+       }
+       
+       @Override
+       public void set(E e) {
+           // TODO Auto-generated method stub
+           
+       }
+       
+       @Override
+       public void add(E e) {
+           // TODO Auto-generated method stub
+           
+       }
+       
+   }
     
     /**
      * Returns a view of the portion of this list between the specified fromIndex, inclusive, and
@@ -620,8 +868,221 @@ public class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public List<E> subList(int fromIndex, int toIndex) {
-        // TODO Auto-generated method stub
+        this.checkBounds(fromIndex);
+        this.checkBounds(toIndex);
+        if (fromIndex > toIndex) {
+            throw new IndexOutOfBoundsException("from index cannot be greater than to index");
+        }
+        
         return null;
+    }
+    
+    private class ArraySubList implements List<E> {
+
+        @Override
+        public <T> T[] toArray(IntFunction<T[]> generator) {
+            // TODO Auto-generated method stub
+            return List.super.toArray(generator);
+        }
+
+        @Override
+        public boolean removeIf(Predicate<? super E> filter) {
+            // TODO Auto-generated method stub
+            return List.super.removeIf(filter);
+        }
+
+        @Override
+        public Stream<E> stream() {
+            // TODO Auto-generated method stub
+            return List.super.stream();
+        }
+
+        @Override
+        public Stream<E> parallelStream() {
+            // TODO Auto-generated method stub
+            return List.super.parallelStream();
+        }
+
+        @Override
+        public void forEach(Consumer<? super E> action) {
+            // TODO Auto-generated method stub
+            List.super.forEach(action);
+        }
+
+        @Override
+        public int size() {
+            // TODO Auto-generated method stub
+            return 0;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        @Override
+        public Iterator<E> iterator() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public Object[] toArray() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public <T> T[] toArray(T[] a) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public boolean add(E e) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        @Override
+        public boolean remove(Object o) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        @Override
+        public boolean containsAll(Collection<?> c) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        @Override
+        public boolean addAll(Collection<? extends E> c) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        @Override
+        public boolean addAll(int index, Collection<? extends E> c) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        @Override
+        public boolean removeAll(Collection<?> c) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        @Override
+        public boolean retainAll(Collection<?> c) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        @Override
+        public void replaceAll(UnaryOperator<E> operator) {
+            // TODO Auto-generated method stub
+            List.super.replaceAll(operator);
+        }
+
+        @Override
+        public void sort(Comparator<? super E> c) {
+            // TODO Auto-generated method stub
+            List.super.sort(c);
+        }
+
+        @Override
+        public void clear() {
+            // TODO Auto-generated method stub
+            
+        }
+
+        @Override
+        public E get(int index) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public E set(int index, E element) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public void add(int index, E element) {
+            // TODO Auto-generated method stub
+            
+        }
+
+        @Override
+        public E remove(int index) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public int indexOf(Object o) {
+            // TODO Auto-generated method stub
+            return 0;
+        }
+
+        @Override
+        public int lastIndexOf(Object o) {
+            // TODO Auto-generated method stub
+            return 0;
+        }
+
+        @Override
+        public ListIterator<E> listIterator() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public ListIterator<E> listIterator(int index) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public List<E> subList(int fromIndex, int toIndex) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public Spliterator<E> spliterator() {
+            // TODO Auto-generated method stub
+            return List.super.spliterator();
+        }
+
+        @Override
+        public int hashCode() {
+            // TODO Auto-generated method stub
+            return super.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            // TODO Auto-generated method stub
+            return super.equals(obj);
+        }
+
+        @Override
+        public String toString() {
+            // TODO Auto-generated method stub
+            return super.toString();
+        }
+        
     }
     
     /**
