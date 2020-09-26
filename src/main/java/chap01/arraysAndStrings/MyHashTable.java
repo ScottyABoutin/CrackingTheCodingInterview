@@ -2,10 +2,8 @@ package chap01.arraysAndStrings;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -187,8 +185,14 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         this();
         Objects.requireNonNull(m);
         
+        // TODO reimplement to put all without changing size, and set size only at the end to avoid
+        // iterating for each item (m.size()) (putAll could also do this)
         this.putAll(m);
     }
+    
+    // ------------------------------------------------------------------------
+    // size operations
+    // ------------------------------------------------------------------------
     
     /**
      * Returns the number of key-value mappings in this map. If the map contains more than
@@ -210,6 +214,10 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     public boolean isEmpty() {
         return size == 0;
     }
+    
+    // ------------------------------------------------------------------------
+    // single element operations
+    // ------------------------------------------------------------------------
     
     /**
      * Returns {@code true} if this map contains a mapping for the specified key. More formally,
@@ -368,6 +376,10 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         // TODO rehash if index is OOB (fails on empty table)
         return index;
     }
+    
+    // ------------------------------------------------------------------------
+    // multiple element operations
+    // ------------------------------------------------------------------------
     
     /**
      * Copies all of the mappings from the specified map to this map. The effect of this call is
@@ -893,6 +905,9 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
     }
     
+    // ------------------------------------------------------------------------
+    // collection views
+    // ------------------------------------------------------------------------
     /**
      * Returns a Set view of the keys contained in this map. The set is backed by the map, so
      * changes to the map are reflected in the set, and vice-versa. If the map is modified while an
@@ -2264,9 +2279,9 @@ public final class MyHashTable<K, V> implements Map<K, V> {
         }
     }
     
-    //-------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Iterators
-    //-------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     
     /**
      * An iterator over the nodes of this hashtable.
@@ -2387,12 +2402,12 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     }
     
     private final class KeyIterator extends HashIterator<K> {
-
+        
         @Override
         public K next() {
             return this.nextNode().getKey();
         }
-
+        
         @Override
         public String type() {
             return "keys";
@@ -2400,21 +2415,21 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     }
     
     private final class ValueIterator extends HashIterator<V> {
-
+        
         @Override
         public V next() {
             return this.nextNode().getValue();
         }
-
+        
         @Override
         public String type() {
             return "values";
         }
     }
     
-    private final class EntryIterator extends HashIterator<Map.Entry<K, V>> {
+    private final class EntryIterator extends HashIterator<Entry<K, V>> {
         @Override
-        public Map.Entry<K, V> next() {
+        public Entry<K, V> next() {
             return this.nextNode();
         }
         
@@ -2427,3 +2442,4 @@ public final class MyHashTable<K, V> implements Map<K, V> {
 // TODO clean up JavaDocs, more efficient implementations, rehashing, ConcurrentModificationException
 // TODO possibly refactor (after efficient implementations) to reuse patterns (replacing entry values, etc)
 // TODO stretch goal: serialization, cloneable, elements() + keys() -> Enumeration (legacy, but an interesting exercise)
+// TODO Spliterator implementations
