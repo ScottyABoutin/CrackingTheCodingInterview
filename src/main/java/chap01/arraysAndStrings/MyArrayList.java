@@ -40,12 +40,6 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         }
     }
     
-    private void checkBounds(int index) {
-        if (index < 0 || index > this.size()) {
-            throw new IndexOutOfBoundsException(index);
-        }
-    }
-    
     /**
      * Constructs an empty list with an initial capacity of ten.
      */
@@ -75,7 +69,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      * @throws NullPointerException if the specified collection is null
      */
     public MyArrayList(Collection<? extends E> c) {
-        this(c.size()); // throws NullPointerException, must be first call
+        this(c.size()); // throws NullPointerException, "this" must be first call
         this.addAll(c);
     }
     
@@ -332,7 +326,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     @Override
     public boolean addAll(int index, Collection<? extends E> c) {
         Objects.requireNonNull(c);
-        this.checkBounds(index);
+        Objects.checkIndex(index, this.size());
         
         if (c.isEmpty()) {
             return false;
@@ -344,6 +338,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
             elements[index + i] = elements[i];
             elements[i] = array[i];
         }
+        size += c.size();
         
         return true;
     }
@@ -505,8 +500,8 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         if (this.size() != list.size()) {
             return false;
         }
-        ListIterator<E> thisIterator = this.listIterator();
-        ListIterator<?> thatIterator = list.listIterator();
+        Iterator<E> thisIterator = this.iterator();
+        Iterator<?> thatIterator = list.iterator();
         while (thisIterator.hasNext()) {
             E item1 = thisIterator.next();
             Object item2 = thatIterator.next();
@@ -565,7 +560,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     @SuppressWarnings("unchecked")
     @Override
     public E get(int index) {
-        this.checkBounds(index);
+        Objects.checkIndex(index, this.size());
         return (E) elements[index];
     }
     
@@ -579,7 +574,8 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public E set(int index, E element) {
-        this.checkBounds(index);
+        Objects.checkIndex(index, this.size());
+        
         @SuppressWarnings("unchecked")
         E original = (E) elements[index];
         elements[index] = element;
@@ -597,7 +593,8 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public void add(int index, E element) {
-        this.checkBounds(index);
+        Objects.checkIndex(index, this.size() + 1);
+        
         this.ensureCapacityWithNewElements(size + 1);
         elements[index] = element;
         size++;
@@ -614,7 +611,8 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public E remove(int index) {
-        this.checkBounds(index);
+        Objects.checkIndex(index, this.size());
+        
         @SuppressWarnings("unchecked")
         E removed = (E) elements[index];
         System.arraycopy(this, index + 1, this, index, size - index);
@@ -686,9 +684,13 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public ListIterator<E> listIterator(int index) {
-        this.checkBounds(index);
-        // TODO Auto-generated method stub
-        return null;
+        Objects.checkIndex(index, this.size());
+
+        return new ArrayListIterator(index);
+    }
+    
+    enum IteratorState {
+        INITIALIZED, REMOVED, MOVED
     }
     
     /**
@@ -697,14 +699,22 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
    private class ArrayIterator implements Iterator<E> {
        Object[] elements = MyArrayList.this.elements;
        int currentIndex;
-       boolean removed = false;
+       int limit;
+       boolean removed = true;
        
        ArrayIterator() {
            this(0);
        }
        
        ArrayIterator(int currentIndex) {
+           this(currentIndex, MyArrayList.this.size());
+       }
+       
+       ArrayIterator(int currentIndex, int limit) {
+           Objects.checkFromToIndex(currentIndex, limit, MyArrayList.this.size());
+           
            this.currentIndex = currentIndex;
+           this.limit = limit;
        }
        
        /**
@@ -715,7 +725,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         */
        @Override
        public boolean hasNext() {
-           return currentIndex < MyArrayList.this.size();
+           return currentIndex < limit;
        }
        
        /**
@@ -726,11 +736,13 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         */
        @Override
        public E next() {
-           if (!hasNext()) {
+           if (!this.hasNext()) {
                throw new NoSuchElementException();
            }
+           
+           removed = false;
            @SuppressWarnings("unchecked")
-           E item = (E) MyArrayList.this.elements[currentIndex];
+           E item = (E) elements[currentIndex];
            currentIndex++;
            return item;
        }
@@ -751,8 +763,12 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         */
        @Override
        public void remove() {
-           // TODO Auto-generated method stub
-           Iterator.super.remove();
+           if (removed) {
+               throw new IllegalStateException();
+           }
+           
+           MyArrayList.this.remove(currentIndex);
+           removed = true;
        }
        
        /**
@@ -776,8 +792,10 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
        @Override
        public void forEachRemaining(Consumer<? super E> action) {
            Objects.requireNonNull(action);
-           // TODO Auto-generated method stub
-           Iterator.super.forEachRemaining(action);
+           
+           while (this.hasNext()) {
+               action.accept(this.next());
+           }
        }
        
        /**
@@ -791,8 +809,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         */
        @Override
        public String toString() {
-           // TODO Auto-generated method stub
-           return super.toString();
+           return String.format("currentIndex: %d, limit: %d", currentIndex, limit);
        }
        
    }
@@ -801,6 +818,18 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     *
     */
    private class ArrayListIterator extends ArrayIterator implements ListIterator<E> {
+       
+       ArrayListIterator() {
+           this(0);
+       }
+       
+       ArrayListIterator(int currentIndex) {
+           this(currentIndex, MyArrayList.this.size());
+       }
+       
+       ArrayListIterator(int currentIndex, int limit) {
+           super(currentIndex, limit);
+       }
        
        @Override
        public boolean hasPrevious() {
@@ -868,17 +897,21 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public List<E> subList(int fromIndex, int toIndex) {
-        this.checkBounds(fromIndex);
-        this.checkBounds(toIndex);
-        if (fromIndex > toIndex) {
-            throw new IndexOutOfBoundsException("from index cannot be greater than to index");
-        }
+        Objects.checkFromToIndex(fromIndex, toIndex, this.size());
         
-        return null;
+        return new ArraySubList(fromIndex, toIndex);
     }
     
     private class ArraySubList implements List<E> {
+        
+        private int fromIndex;
+        private int toIndex;
 
+        ArraySubList(int fromIndex, int toIndex) {
+            this.fromIndex = fromIndex;
+            this.toIndex = toIndex;
+        }
+        
         @Override
         public <T> T[] toArray(IntFunction<T[]> generator) {
             // TODO Auto-generated method stub
