@@ -22,7 +22,7 @@ import java.util.stream.Stream;
  * Resizable-array implementation of the {@code List} interface. Implements all optional list
  * operations, and permits all elements, including {@code null}. It is not thread-safe.
  *
- * @param <E> the type of elements in this list
+ * @param E the type of elements in this list
  */
 public final class MyArrayList<E> implements List<E>, RandomAccess {
     private static final int DEFAULT_LENGTH = 10;
@@ -187,13 +187,14 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      *                                  the runtime type of every element in this list
      * @throws NullPointerException if the specified array is null
      */
-    @SuppressWarnings("unchecked")
     @Override
     public <T> T[] toArray(T[] a) {
         Objects.requireNonNull(a);
         
         if (a.length < this.size()) {
-            return (T[]) Arrays.copyOf(elements, this.size(), a.getClass());
+            @SuppressWarnings("unchecked")
+            T[] newArray = (T[]) Arrays.copyOf(elements, this.size(), a.getClass());
+            return newArray;
         } else {
             System.arraycopy(elements, 0, a, 0, this.size());
             if (a.length > this.size()) {
@@ -339,7 +340,9 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         Objects.requireNonNull(filter);
         
         boolean changed = false;
-        // Iterating backwards to lessen the amount of array shifting as possible
+        // Iterating backwards to lessen the amount of array shifting as much as possible
+        // TODO possibly capture groups, to remove batches of elements whenever encountered for less
+        // array shifting
         for (ListIterator<E> iterator = this.listIterator(this.size()); iterator.hasPrevious();) {
             E element = iterator.previous();
             if (filter.test(element)) {
@@ -363,6 +366,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     @Override
     public boolean retainAll(Collection<?> c) {
         Objects.requireNonNull(c);
+        
         Predicate<E> contains = c::contains;
         return this.removeIf(contains.negate());
     }
@@ -559,8 +563,8 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     @Override
     public int indexOf(Object o) {
         for (int i = 0; i < this.size(); i++) {
-            Object item = elements[i];
-            if (Objects.equals(o, item)) {
+            Object element = elements[i];
+            if (Objects.equals(o, element)) {
                 return i;
             }
         }
@@ -579,8 +583,8 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     @Override
     public int lastIndexOf(Object o) {
         for (int i = size - 1; i >= 0; i--) {
-            Object item = elements[i];
-            if (Objects.equals(o, item)) {
+            Object element = elements[i];
+            if (Objects.equals(o, element)) {
                 return i;
             }
         }
@@ -630,7 +634,6 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     private class ArrayIterator implements Iterator<E> {
         // Elements are package-level so they can be inherited
         int currentIndex;
-        int endIndexLimit;
         IteratorState state = IteratorState.INITIALIZED;
         
         /**
@@ -643,28 +646,12 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         /**
          * Initializes an ArrayIterator that iterates from the given index to the end of the array.
          * 
-         * @param startingIndex The index that elements are iterated from
-         * @throws IndexOutOfBoundsException If the starting index is less than 0 or is greater the
-         *                                       size of the list
+         * @param startingIndex The index where the iterator starts iterating from.
          */
         ArrayIterator(int startingIndex) {
-            this(startingIndex, MyArrayList.this.size());
-        }
-        
-        /**
-         * Initializes an ArrayIterator that iterates from the given index to the limit
-         * 
-         * @param startingIndex The index that elements are iterated from, inclusive
-         * @param limit         The index that elements are iterated to, exclusive
-         * @throws IndexOutOfBoundsException If the starting index is less than 0, starting index is
-         *                                       greater than the limit, or the limit is greater
-         *                                       than the size of the list
-         */
-        ArrayIterator(int startingIndex, int limit) {
-            Objects.checkFromToIndex(startingIndex, limit, MyArrayList.this.size());
+            Objects.checkIndex(startingIndex, MyArrayList.this.size());
             
             this.currentIndex = startingIndex;
-            this.endIndexLimit = limit;
         }
         
         /**
@@ -675,7 +662,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
          */
         @Override
         public boolean hasNext() {
-            return currentIndex < endIndexLimit;
+            return currentIndex < MyArrayList.this.size();
         }
         
         /**
@@ -692,9 +679,9 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
             
             state = IteratorState.MOVED;
             @SuppressWarnings("unchecked")
-            E item = (E) elements[currentIndex];
+            E element = (E) elements[currentIndex];
             currentIndex++;
-            return item;
+            return element;
         }
         
         /**
@@ -719,7 +706,6 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
             
             MyArrayList.this.remove(currentIndex);
             currentIndex--;
-            endIndexLimit--;
             state = IteratorState.REMOVED;
         }
         
@@ -760,7 +746,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
          */
         @Override
         public String toString() {
-            return String.format("Iterator: currentIndex=%d, limit=%d", currentIndex, endIndexLimit);
+            return String.format("Iterator: currentIndex=%d", currentIndex);
         }
         
     }
@@ -771,8 +757,6 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      */
     private class ArrayListIterator extends ArrayIterator implements ListIterator<E> {
         
-        int beginningLimit;
-        
         /**
          * Initializes an ArrayIterator that iterates from the given index to the end of the array.
          * 
@@ -781,39 +765,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
          *                                       size of the list
          */
         ArrayListIterator(int startingIndex) {
-            this(startingIndex, MyArrayList.this.size());
-        }
-        
-        /**
-         * Initializes an ArrayListIterator that iterates from the given index to the limit
-         * 
-         * @param startingIndex The index that elements are iterated from, inclusive
-         * @param limit         The index that elements are iterated to, exclusive
-         * @throws IndexOutOfBoundsException If the starting index is less than 0, starting index is
-         *                                       greater than the limit, or the limit is greater
-         *                                       than the size of the list
-         */
-        ArrayListIterator(int startingIndex, int limit) {
-            this(0, startingIndex, limit);
-        }
-        
-        /**
-         * Initializes an ArrayListIterator that iterates from the given index to the limit
-         * 
-         * @param beginningLimit The index that elements cannot be iterated before, inclusive
-         * @param startingIndex  The index that elements are iterated from, inclusive
-         * @param limit          The index that elements are iterated to, exclusive
-         * @throws IndexOutOfBoundsException If the beginningLimit is less than 0, the starting
-         *                                       index is less than the beginningLimit, the starting
-         *                                       index is greater than the limit, or the limit is
-         *                                       greater than the size of the list
-         */
-        ArrayListIterator(int beginningLimit, int startingIndex, int limit) {
-            super(startingIndex, limit);
-            // TODO Check implementation
-            Objects.checkFromIndexSize(beginningLimit, startingIndex, limit);
-            
-            this.beginningLimit = beginningLimit;
+            super(startingIndex);
         }
         
         /**
@@ -826,7 +778,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
          */
         @Override
         public boolean hasPrevious() {
-            return currentIndex > beginningLimit;
+            return currentIndex > 0;
         }
         
         /**
@@ -846,9 +798,9 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
             
             state = IteratorState.MOVED;
             @SuppressWarnings("unchecked")
-            E item = (E) elements[currentIndex];
+            E element = (E) elements[currentIndex];
             currentIndex--;
-            return item;
+            return element;
         }
         
         /**
@@ -910,7 +862,6 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         public void add(E e) {
             MyArrayList.this.add(currentIndex, e);
             currentIndex++;
-            endIndexLimit++;
         }
         
     }
@@ -944,203 +895,401 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     public List<E> subList(int fromIndex, int toIndex) {
         Objects.checkFromToIndex(fromIndex, toIndex, this.size());
         
-        return new ArraySubList(fromIndex, toIndex);
+        return new ArraySubList<>(fromIndex, toIndex, this);
     }
     
-    private class ArraySubList implements List<E> {
+    /**
+     * Represents a view of the portion of this list between the specified fromIndex, inclusive, and
+     * toIndex, exclusive. It is designed to be a recursive data structure (sublists of sublists).
+     * Note that the specification of the subList method allows sublists to not care about each
+     * other in regards to structural modifications: non-structural modifications must be observed
+     * (so, copying the array is out of the question). However, from the List specification,
+     * structural changes must be observed in a recursive fashion: a parent must see its children's
+     * structural changes even if the children cannot see each others, or its parents.
+     * 
+     * @param E the type of elements in this list
+     */
+    private static class ArraySubList<E> implements List<E>, RandomAccess {
+        private final MyArrayList<E> root;
+        private final ArraySubList<E> parent;
+        private final int fromIndex;
+        private int size;
         
-        private int fromIndex;
-        private int toIndex;
+        /**
+         * Creates a sublist from the range of the original arraylist.
+         * 
+         * @param fromIndex
+         * @param toIndex
+         * @param root
+         */
+        ArraySubList(int fromIndex, int toIndex, MyArrayList<E> root) {
+            this(fromIndex, toIndex, root, null);
+        }
         
-        ArraySubList(int fromIndex, int toIndex) {
+        /**
+         * Creates a sublist from a range within a List. This List could be an arraylist, or another
+         * sublist.
+         * 
+         * @param fromIndex
+         * @param toIndex
+         * @param root
+         * @param parent
+         */
+        ArraySubList(int fromIndex, int toIndex, MyArrayList<E> root, ArraySubList<E> parent) {
+            Objects.checkFromToIndex(fromIndex, toIndex, parent.size());
+            
+            this.root = root;
             this.fromIndex = fromIndex;
-            this.toIndex = toIndex;
+            this.size = toIndex - fromIndex;
+            this.parent = parent;
+        }
+        
+        private int limit() {
+            return fromIndex + this.size();
+        }
+        
+        private int targetIndex(int sublistIndex) {
+            return sublistIndex + fromIndex;
+        }
+        
+        private void updateSize(int change) {
+            for (ArraySubList<E> subList = this; subList != null; subList = subList.parent) {
+                this.size += change;
+            }
         }
         
         @Override
         public int size() {
-            // TODO Auto-generated method stub
-            return 0;
+            return size;
         }
         
         @Override
         public boolean isEmpty() {
-            // TODO Auto-generated method stub
-            return false;
+            return size == 0;
         }
         
         @Override
         public boolean contains(Object o) {
-            // TODO Auto-generated method stub
+            for (E element : this) {
+                if (Objects.equals(o, element)) {
+                    return true;
+                }
+            }
             return false;
         }
         
         @Override
         public Iterator<E> iterator() {
-            // TODO Auto-generated method stub
-            return null;
+            return this.listIterator();
         }
         
         @Override
         public void forEach(Consumer<? super E> action) {
-            // TODO Auto-generated method stub
-            List.super.forEach(action);
+            Objects.requireNonNull(action);
+            
+            for (E element : this) {
+                action.accept(element);
+            }
         }
         
         @Override
         public Object[] toArray() {
-            // TODO Auto-generated method stub
-            return null;
+            return Arrays.copyOfRange(root.elements, fromIndex, this.limit());
         }
         
         @Override
         public <T> T[] toArray(T[] a) {
-            // TODO Auto-generated method stub
-            return null;
+            Objects.requireNonNull(a);
+            
+            if (a.length < this.size()) {
+                @SuppressWarnings("unchecked")
+                T[] newArray = (T[]) Arrays.copyOfRange(root.elements, fromIndex, this.limit(), a.getClass());
+                return newArray;
+            } else {
+                System.arraycopy(root.elements, fromIndex, a, 0, this.size());
+                if (a.length > this.size()) {
+                    a[this.size()] = null;
+                }
+                return a;
+            }
         }
         
         @Override
         public <T> T[] toArray(IntFunction<T[]> generator) {
-            // TODO Auto-generated method stub
-            return List.super.toArray(generator);
+            // TODO this fails if the generator function returns null, but not for a documented
+            // reason.
+            Objects.requireNonNull(generator);
+            
+            T[] generatedArray = generator.apply(this.size());
+            return this.toArray(generatedArray);
         }
         
         @Override
         public boolean add(E e) {
-            // TODO Auto-generated method stub
-            return false;
+            this.add(size, e);
+            return true;
         }
         
         @Override
         public boolean remove(Object o) {
-            // TODO Auto-generated method stub
+            for (Iterator<E> iterator = this.iterator(); iterator.hasNext();) {
+                E element = iterator.next();
+                if (Objects.equals(o, element)) {
+                    iterator.remove();
+                    return true;
+                }
+            }
             return false;
         }
         
         @Override
         public boolean containsAll(Collection<?> c) {
-            // TODO Auto-generated method stub
-            return false;
+            Objects.requireNonNull(c);
+            
+            for (Object element : c) {
+                if (!this.contains(element)) {
+                    return false;
+                }
+            }
+            return true;
         }
         
         @Override
         public boolean addAll(Collection<? extends E> c) {
-            // TODO Auto-generated method stub
-            return false;
+            Objects.requireNonNull(c);
+            
+            return this.addAll(this.size(), c);
         }
         
         @Override
         public boolean removeAll(Collection<?> c) {
-            // TODO Auto-generated method stub
-            return false;
+            Objects.requireNonNull(c);
+            
+            return this.removeIf(c::contains);
         }
         
         @Override
         public boolean removeIf(Predicate<? super E> filter) {
-            // TODO Auto-generated method stub
-            return List.super.removeIf(filter);
+            Objects.requireNonNull(filter);
+            
+            boolean changed = false;
+            // Iterating backwards to lessen the amount of array shifting as much as possible
+            // TODO possibly capture groups, to remove batches of elements whenever encountered for
+            // less
+            // array shifting
+            for (ListIterator<E> iterator = this.listIterator(this.size()); iterator.hasPrevious();) {
+                E element = iterator.previous();
+                if (filter.test(element)) {
+                    iterator.remove();
+                    changed = true;
+                }
+            }
+            
+            return changed;
         }
         
         @Override
         public boolean retainAll(Collection<?> c) {
-            // TODO Auto-generated method stub
-            return false;
+            Objects.requireNonNull(c);
+            
+            Predicate<E> contains = c::contains;
+            return this.removeIf(contains.negate());
         }
         
         @Override
         public void replaceAll(UnaryOperator<E> operator) {
-            // TODO Auto-generated method stub
-            List.super.replaceAll(operator);
+            Objects.requireNonNull(operator);
+            
+            ListIterator<E> listIterator = this.listIterator();
+            while (listIterator.hasNext()) {
+                E replacableItem = listIterator.next();
+                E newItem = operator.apply(replacableItem);
+                listIterator.set(newItem);
+            }
         }
         
         @Override
         public void sort(Comparator<? super E> c) {
-            // TODO Auto-generated method stub
-            List.super.sort(c);
+            Collections.sort(this, c); // TODO implement sorting?
         }
         
         @Override
         public void clear() {
-            // TODO Auto-generated method stub
-            
+            root.removeRange(fromIndex, this.size());
+            this.updateSize(-1 * this.size());
         }
         
         @Override
         public E get(int index) {
-            // TODO Auto-generated method stub
-            return null;
+            return root.get(this.targetIndex(index));
         }
         
         @Override
         public E set(int index, E element) {
-            // TODO Auto-generated method stub
-            return null;
+            return root.set(this.targetIndex(index), element);
         }
         
         @Override
         public void add(int index, E element) {
-            // TODO Auto-generated method stub
-            
+            root.add(this.targetIndex(index), element);
+            this.updateSize(1);
         }
         
         @Override
         public E remove(int index) {
-            // TODO Auto-generated method stub
-            return null;
+            E element = root.remove(this.targetIndex(index));
+            this.updateSize(-1);
+            return element;
         }
         
         @Override
         public boolean addAll(int index, Collection<? extends E> c) {
-            // TODO Auto-generated method stub
-            return false;
+            Objects.requireNonNull(c);
+            
+            boolean changed = root.addAll(this.targetIndex(index), c);
+            this.updateSize(c.size());
+            return changed;
         }
         
         @Override
         public int indexOf(Object o) {
-            // TODO Auto-generated method stub
-            return 0;
+            return root.indexOf(o) - fromIndex;
         }
         
         @Override
         public int lastIndexOf(Object o) {
-            // TODO Auto-generated method stub
-            return 0;
+            return root.lastIndexOf(o) - fromIndex;
         }
         
         @Override
         public ListIterator<E> listIterator() {
-            // TODO Auto-generated method stub
-            return null;
+            return this.listIterator(0);
         }
         
         @Override
         public ListIterator<E> listIterator(int index) {
-            // TODO Auto-generated method stub
-            return null;
+            class SubListIterator implements ListIterator<E> {
+                
+                SubListIterator(int index) {
+                    
+                }
+                
+                @Override
+                public void forEachRemaining(Consumer<? super E> action) {
+                    // TODO Auto-generated method stub
+                    ListIterator.super.forEachRemaining(action);
+                }
+
+                @Override
+                public boolean hasNext() {
+                    // TODO Auto-generated method stub
+                    return false;
+                }
+
+                @Override
+                public E next() {
+                    // TODO Auto-generated method stub
+                    return null;
+                }
+
+                @Override
+                public boolean hasPrevious() {
+                    // TODO Auto-generated method stub
+                    return false;
+                }
+
+                @Override
+                public E previous() {
+                    // TODO Auto-generated method stub
+                    return null;
+                }
+
+                @Override
+                public int nextIndex() {
+                    // TODO Auto-generated method stub
+                    return 0;
+                }
+
+                @Override
+                public int previousIndex() {
+                    // TODO Auto-generated method stub
+                    return 0;
+                }
+
+                @Override
+                public void remove() {
+                    // TODO Auto-generated method stub
+                    
+                }
+
+                @Override
+                public void set(E e) {
+                    // TODO Auto-generated method stub
+                    
+                }
+
+                @Override
+                public void add(E e) {
+                    // TODO Auto-generated method stub
+                    
+                }
+
+                @Override
+                public String toString() {
+                    // TODO Auto-generated method stub
+                    return super.toString();
+                }
+                
+            }
+            
+            return new SubListIterator(index);
         }
         
         @Override
         public List<E> subList(int fromIndex, int toIndex) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-        
-        @Override
-        public int hashCode() {
-            // TODO Auto-generated method stub
-            return super.hashCode();
+            return new ArraySubList<>(fromIndex, toIndex, root, this);
         }
         
         @Override
         public boolean equals(Object obj) {
-            // TODO Auto-generated method stub
-            return super.equals(obj);
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof List<?>)) {
+                return false;
+            }
+            List<?> list = (List<?>) obj;
+            if (this.size() != list.size()) {
+                return false;
+            }
+            Iterator<E> thisIterator = this.iterator();
+            Iterator<?> thatIterator = list.iterator();
+            while (thisIterator.hasNext()) {
+                E element1 = thisIterator.next();
+                Object element2 = thatIterator.next();
+                if (!Objects.equals(element1, element2)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        @Override
+        public int hashCode() {
+            int hashCode = 1;
+            for (E element : this) {
+                hashCode = 31 * hashCode + (element == null ? 0 : element.hashCode());
+            }
+            return hashCode;
         }
         
         @Override
         public String toString() {
-            // TODO Auto-generated method stub
-            return super.toString();
+            StringJoiner joiner = new StringJoiner(", ", "[", "]");
+            for (E element : this) {
+                joiner.add(String.valueOf(element));
+            }
+            return joiner.toString();
         }
         
         @Override
@@ -1161,6 +1310,22 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
             return List.super.parallelStream();
         }
         
+    }
+    
+    void removeRange(int fromIndex, int sizeOfRemoval) {
+        Objects.checkFromIndexSize(fromIndex, sizeOfRemoval, this.size());
+        
+        if (sizeOfRemoval == this.size()) {
+            this.clear();
+        } else if (sizeOfRemoval != 0) {
+            int toIndex = fromIndex + sizeOfRemoval;
+            Object[] newElements = new Object[this.size() - sizeOfRemoval];
+            System.arraycopy(elements, 0, newElements, 0, fromIndex);
+            System.arraycopy(elements, toIndex, newElements, fromIndex, this.size() - toIndex);
+            
+            size -= sizeOfRemoval;
+            elements = newElements;
+        }
     }
     
     /**
@@ -1189,14 +1354,13 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         Iterator<E> thisIterator = this.iterator();
         Iterator<?> thatIterator = list.iterator();
         while (thisIterator.hasNext()) {
-            E item1 = thisIterator.next();
-            Object item2 = thatIterator.next();
-            if (!Objects.equals(item1, item2)) {
+            E element1 = thisIterator.next();
+            Object element2 = thatIterator.next();
+            if (!Objects.equals(element1, element2)) {
                 return false;
             }
         }
         return true;
-        
     }
     
     /**
@@ -1213,8 +1377,8 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     @Override
     public int hashCode() {
         int hashCode = 1;
-        for (E item : this) {
-            hashCode = 31 * hashCode + (item == null ? 0 : item.hashCode());
+        for (E element : this) {
+            hashCode = 31 * hashCode + (element == null ? 0 : element.hashCode());
         }
         return hashCode;
     }
@@ -1230,8 +1394,8 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     @Override
     public String toString() {
         StringJoiner joiner = new StringJoiner(", ", "[", "]");
-        for (E item : this) {
-            joiner.add(String.valueOf(item));
+        for (E element : this) {
+            joiner.add(String.valueOf(element));
         }
         return joiner.toString();
     }
