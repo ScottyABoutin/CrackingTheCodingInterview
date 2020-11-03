@@ -309,41 +309,6 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     }
     
     /**
-     * Inserts all of the elements in the specified collection into this list at the specified
-     * position. Shifts the element currently at that position (if any) and any subsequent elements
-     * to the right (increases their indices). The new elements will appear in this list in the
-     * order that they are returned by the specified collection's iterator. The behavior of this
-     * operation is undefined if the specified collection is modified while the operation is in
-     * progress. (Note that this will occur if the specified collection is this list, and it's
-     * nonempty.)
-     * 
-     * @param index index at which to insert the first element from the specified collection
-     * @param c     collection containing elements to be added to this list
-     * @return true if this list changed as a result of the call
-     * @throws NullPointerException      if the specified collection is null
-     * @throws IndexOutOfBoundsException if the index is out of range (index < 0 || index > size())
-     */
-    @Override
-    public boolean addAll(int index, Collection<? extends E> c) {
-        Objects.requireNonNull(c);
-        Objects.checkIndex(index, this.size());
-        
-        if (c.isEmpty()) {
-            return false;
-        }
-        
-        this.ensureCapacityWithNewElements(c.size());
-        Object[] array = c.toArray();
-        for (int i = array.length - 1; i >= 0; i--) {
-            elements[index + i] = elements[i];
-            elements[i] = array[i];
-        }
-        size += c.size();
-        
-        return true;
-    }
-    
-    /**
      * Removes from this list all of its elements that are contained in the specified collection.
      * 
      * @param c collection containing elements to be removed from this list
@@ -478,79 +443,6 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     }
     
     /**
-     * Compares the specified object with this list for equality. Returns true if and only if the
-     * specified object is also a list, both lists have the same size, and all corresponding pairs
-     * of elements in the two lists are equal. (Two elements e1 and e2 are equal if
-     * Objects.equals(e1, e2).) In other words, two lists are defined to be equal if they contain
-     * the same elements in the same order. This definition ensures that the equals method works
-     * properly across different implementations of the List interface.
-     * 
-     * @param o the object to be compared for equality with this list
-     * @return true if the specified object is equal to this list
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof List<?>)) {
-            return false;
-        }
-        List<?> list = (List<?>) o;
-        if (this.size() != list.size()) {
-            return false;
-        }
-        Iterator<E> thisIterator = this.iterator();
-        Iterator<?> thatIterator = list.iterator();
-        while (thisIterator.hasNext()) {
-            E item1 = thisIterator.next();
-            Object item2 = thatIterator.next();
-            if (!Objects.equals(item1, item2)) {
-                return false;
-            }
-        }
-        return true;
-        
-    }
-    
-    /**
-     * Returns the hash code value for this list. The hash code of a list is defined to be the
-     * result of the following calculation:
-     * 
-     * int hashCode = 1; for (E e : list) hashCode = 31*hashCode + (e==null ? 0 : e.hashCode());
-     * 
-     * This ensures that list1.equals(list2) implies that list1.hashCode()==list2.hashCode() for any
-     * two lists, list1 and list2, as required by the general contract of Object.hashCode().
-     * 
-     * @return the hash code value for this list
-     */
-    @Override
-    public int hashCode() {
-        int hashCode = 1;
-        for (E item : this) {
-            hashCode = 31 * hashCode + (item == null ? 0 : item.hashCode());
-        }
-        return hashCode;
-    }
-    
-    /**
-     * Returns a string representation of this collection. The string representation consists of a
-     * list of the collection's elements in the order they are returned by its iterator, enclosed in
-     * square brackets ("[]"). Adjacent elements are separated by the characters ", " (comma and
-     * space). Elements are converted to strings as by String.valueOf(Object).
-     * 
-     * @return a string representation of this collection
-     */
-    @Override
-    public String toString() {
-        StringJoiner joiner = new StringJoiner(", ", "[", "]");
-        for (E item : this) {
-            joiner.add(String.valueOf(item));
-        }
-        return joiner.toString();
-    }
-    
-    /**
      * Returns the element at the specified position in this list.
      * 
      * @param index index of the element to return
@@ -621,6 +513,41 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     }
     
     /**
+     * Inserts all of the elements in the specified collection into this list at the specified
+     * position. Shifts the element currently at that position (if any) and any subsequent elements
+     * to the right (increases their indices). The new elements will appear in this list in the
+     * order that they are returned by the specified collection's iterator. The behavior of this
+     * operation is undefined if the specified collection is modified while the operation is in
+     * progress. (Note that this will occur if the specified collection is this list, and it's
+     * nonempty.)
+     * 
+     * @param index index at which to insert the first element from the specified collection
+     * @param c     collection containing elements to be added to this list
+     * @return true if this list changed as a result of the call
+     * @throws NullPointerException      if the specified collection is null
+     * @throws IndexOutOfBoundsException if the index is out of range (index < 0 || index > size())
+     */
+    @Override
+    public boolean addAll(int index, Collection<? extends E> c) {
+        Objects.requireNonNull(c);
+        Objects.checkIndex(index, this.size());
+        
+        if (c.isEmpty()) {
+            return false;
+        }
+        
+        this.ensureCapacityWithNewElements(c.size());
+        Object[] array = c.toArray();
+        for (int i = array.length - 1; i >= 0; i--) {
+            elements[index + i] = elements[i];
+            elements[i] = array[i];
+        }
+        size += c.size();
+        
+        return true;
+    }
+    
+    /**
      * Returns the index of the first occurrence of the specified element in this list, or -1 if
      * this list does not contain the element. More formally, returns the lowest index i such that
      * Objects.equals(o, get(i)), or -1 if there is no such index.
@@ -685,189 +612,308 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
     @Override
     public ListIterator<E> listIterator(int index) {
         Objects.checkIndex(index, this.size());
-
+        
         return new ArrayListIterator(index);
     }
     
     enum IteratorState {
-        INITIALIZED, REMOVED, MOVED
+        INITIALIZED, REMOVED, MOVED;
+        
+        public boolean cannotModify() {
+            return this != MOVED;
+        }
     }
     
     /**
     *
     */
-   private class ArrayIterator implements Iterator<E> {
-       Object[] elements = MyArrayList.this.elements;
-       int currentIndex;
-       int limit;
-       boolean removed = true;
-       
-       ArrayIterator() {
-           this(0);
-       }
-       
-       ArrayIterator(int currentIndex) {
-           this(currentIndex, MyArrayList.this.size());
-       }
-       
-       ArrayIterator(int currentIndex, int limit) {
-           Objects.checkFromToIndex(currentIndex, limit, MyArrayList.this.size());
-           
-           this.currentIndex = currentIndex;
-           this.limit = limit;
-       }
-       
-       /**
-        * Returns true if the iteration has more elements. (In other words, returns true if next()
-        * would return an element rather than throwing an exception.)
-        * 
-        * @return true if the iteration has more elements
-        */
-       @Override
-       public boolean hasNext() {
-           return currentIndex < limit;
-       }
-       
-       /**
-        * Returns the next element in the iteration.
-        * 
-        * @return the next element in the iteration
-        * @throws NoSuchElementException if the iteration has no more elements
-        */
-       @Override
-       public E next() {
-           if (!this.hasNext()) {
-               throw new NoSuchElementException();
-           }
-           
-           removed = false;
-           @SuppressWarnings("unchecked")
-           E item = (E) elements[currentIndex];
-           currentIndex++;
-           return item;
-       }
-       
-       /**
-        * Removes from the underlying collection the last element returned by this iterator. This
-        * method can be called only once per call to next(). The behavior of an iterator is
-        * unspecified if the underlying collection is modified while the iteration is in progress
-        * in any way other than by calling this method, unless an overriding class has specified a
-        * concurrent modification policy.
-        * 
-        * The behavior of an iterator is unspecified if this method is called after a call to the
-        * forEachRemaining method.
-        * 
-        * @throws IllegalStateException - if the next method has not yet been called, or the remove
-        *                                   method has already been called after the last call to
-        *                                   the next method
-        */
-       @Override
-       public void remove() {
-           if (removed) {
-               throw new IllegalStateException();
-           }
-           
-           MyArrayList.this.remove(currentIndex);
-           removed = true;
-       }
-       
-       /**
-        * Performs the given action for each remaining element until all elements have been
-        * processed or the action throws an exception. Actions are performed in the order of
-        * iteration, if that order is specified. Exceptions thrown by the action are relayed to the
-        * caller. The behavior of an iterator is unspecified if the action modifies the collection
-        * in any way (even by calling the remove method or other mutator methods of Iterator
-        * subtypes), unless an overriding class has specified a concurrent modification policy.
-        * 
-        * Subsequent behavior of an iterator is unspecified if the action throws an exception.
-        * 
-        * Implementation Requirements: The default implementation behaves as if:
-        * 
-        * 
-        * while (hasNext()) action.accept(next());
-        * 
-        * @param action The action to be performed for each element
-        * @throws NullPointerException if the specified action is null
-        */
-       @Override
-       public void forEachRemaining(Consumer<? super E> action) {
-           Objects.requireNonNull(action);
-           
-           while (this.hasNext()) {
-               action.accept(this.next());
-           }
-       }
-       
-       /**
-        *
-        * Returns a string representation of this iterator that represents what it iterates over.
-        * It also textually represents whether the iterator has more elements, although code should
-        * use the hasNext() method rather than parsing this String. This format is subject to
-        * change in future versions.
-        * 
-        * @return a string representation of this iterator
-        */
-       @Override
-       public String toString() {
-           return String.format("currentIndex: %d, limit: %d", currentIndex, limit);
-       }
-       
-   }
-   
-   /**
-    *
-    */
-   private class ArrayListIterator extends ArrayIterator implements ListIterator<E> {
-       
-       ArrayListIterator() {
-           this(0);
-       }
-       
-       ArrayListIterator(int currentIndex) {
-           this(currentIndex, MyArrayList.this.size());
-       }
-       
-       ArrayListIterator(int currentIndex, int limit) {
-           super(currentIndex, limit);
-       }
-       
-       @Override
-       public boolean hasPrevious() {
-           // TODO Auto-generated method stub
-           return false;
-       }
-       
-       @Override
-       public E previous() {
-           // TODO Auto-generated method stub
-           return null;
-       }
-       
-       @Override
-       public int nextIndex() {
-           // TODO Auto-generated method stub
-           return 0;
-       }
-       
-       @Override
-       public int previousIndex() {
-           // TODO Auto-generated method stub
-           return 0;
-       }
-       
-       @Override
-       public void set(E e) {
-           // TODO Auto-generated method stub
-           
-       }
-       
-       @Override
-       public void add(E e) {
-           // TODO Auto-generated method stub
-           
-       }
-       
-   }
+    private class ArrayIterator implements Iterator<E> {
+        // Elements are package-level so they can be inherited
+        int currentIndex;
+        int endIndexLimit;
+        IteratorState state = IteratorState.INITIALIZED;
+        
+        /**
+         * Initializes an ArrayIterator that iterates from the beginning to the end of the array.
+         */
+        ArrayIterator() {
+            this(0);
+        }
+        
+        /**
+         * Initializes an ArrayIterator that iterates from the given index to the end of the array.
+         * 
+         * @param startingIndex The index that elements are iterated from
+         * @throws IndexOutOfBoundsException If the starting index is less than 0 or is greater the
+         *                                       size of the list
+         */
+        ArrayIterator(int startingIndex) {
+            this(startingIndex, MyArrayList.this.size());
+        }
+        
+        /**
+         * Initializes an ArrayIterator that iterates from the given index to the limit
+         * 
+         * @param startingIndex The index that elements are iterated from, inclusive
+         * @param limit         The index that elements are iterated to, exclusive
+         * @throws IndexOutOfBoundsException If the starting index is less than 0, starting index is
+         *                                       greater than the limit, or the limit is greater
+         *                                       than the size of the list
+         */
+        ArrayIterator(int startingIndex, int limit) {
+            Objects.checkFromToIndex(startingIndex, limit, MyArrayList.this.size());
+            
+            this.currentIndex = startingIndex;
+            this.endIndexLimit = limit;
+        }
+        
+        /**
+         * Returns true if the iteration has more elements. (In other words, returns true if next()
+         * would return an element rather than throwing an exception.)
+         * 
+         * @return true if the iteration has more elements
+         */
+        @Override
+        public boolean hasNext() {
+            return currentIndex < endIndexLimit;
+        }
+        
+        /**
+         * Returns the next element in the iteration.
+         * 
+         * @return the next element in the iteration
+         * @throws NoSuchElementException if the iteration has no more elements
+         */
+        @Override
+        public E next() {
+            if (!this.hasNext()) {
+                throw new NoSuchElementException();
+            }
+            
+            state = IteratorState.MOVED;
+            @SuppressWarnings("unchecked")
+            E item = (E) elements[currentIndex];
+            currentIndex++;
+            return item;
+        }
+        
+        /**
+         * Removes from the underlying collection the last element returned by this iterator. This
+         * method can be called only once per call to next(). The behavior of an iterator is
+         * unspecified if the underlying collection is modified while the iteration is in progress
+         * in any way other than by calling this method, unless an overriding class has specified a
+         * concurrent modification policy.
+         * 
+         * The behavior of an iterator is unspecified if this method is called after a call to the
+         * forEachRemaining method.
+         * 
+         * @throws IllegalStateException - if the next method has not yet been called, or the remove
+         *                                   method has already been called after the last call to
+         *                                   the next method
+         */
+        @Override
+        public void remove() {
+            if (this.state.cannotModify()) {
+                throw new IllegalStateException("Cannot remove an element in this state");
+            }
+            
+            MyArrayList.this.remove(currentIndex);
+            currentIndex--;
+            endIndexLimit--;
+            state = IteratorState.REMOVED;
+        }
+        
+        /**
+         * Performs the given action for each remaining element until all elements have been
+         * processed or the action throws an exception. Actions are performed in the order of
+         * iteration, if that order is specified. Exceptions thrown by the action are relayed to the
+         * caller. The behavior of an iterator is unspecified if the action modifies the collection
+         * in any way (even by calling the remove method or other mutator methods of Iterator
+         * subtypes), unless an overriding class has specified a concurrent modification policy.
+         * 
+         * Subsequent behavior of an iterator is unspecified if the action throws an exception.
+         * 
+         * Implementation Requirements: The default implementation behaves as if:
+         * 
+         * while (hasNext()) action.accept(next());
+         * 
+         * @param action The action to be performed for each element
+         * @throws NullPointerException if the specified action is null
+         */
+        @Override
+        public void forEachRemaining(Consumer<? super E> action) {
+            Objects.requireNonNull(action);
+            
+            while (this.hasNext()) {
+                action.accept(this.next());
+            }
+        }
+        
+        /**
+         *
+         * Returns a string representation of this iterator that represents what it iterates over.
+         * It also textually represents whether the iterator has more elements, although code should
+         * use the hasNext() method rather than parsing this String. This format is subject to
+         * change in future versions.
+         * 
+         * @return a string representation of this iterator
+         */
+        @Override
+        public String toString() {
+            return String.format("Iterator: currentIndex=%d, limit=%d", currentIndex, endIndexLimit);
+        }
+        
+    }
+    
+    /**
+     * This inherits the implementation of the Iterator methods, which conforms to the
+     * re-specifications of those methods in ListIterator.
+     */
+    private class ArrayListIterator extends ArrayIterator implements ListIterator<E> {
+        
+        int beginningLimit;
+        
+        /**
+         * Initializes an ArrayIterator that iterates from the given index to the end of the array.
+         * 
+         * @param startingIndex The index that elements are iterated from
+         * @throws IndexOutOfBoundsException If the starting index is less than 0 or is greater the
+         *                                       size of the list
+         */
+        ArrayListIterator(int startingIndex) {
+            this(startingIndex, MyArrayList.this.size());
+        }
+        
+        /**
+         * Initializes an ArrayListIterator that iterates from the given index to the limit
+         * 
+         * @param startingIndex The index that elements are iterated from, inclusive
+         * @param limit         The index that elements are iterated to, exclusive
+         * @throws IndexOutOfBoundsException If the starting index is less than 0, starting index is
+         *                                       greater than the limit, or the limit is greater
+         *                                       than the size of the list
+         */
+        ArrayListIterator(int startingIndex, int limit) {
+            this(0, startingIndex, limit);
+        }
+        
+        /**
+         * Initializes an ArrayListIterator that iterates from the given index to the limit
+         * 
+         * @param beginningLimit The index that elements cannot be iterated before, inclusive
+         * @param startingIndex  The index that elements are iterated from, inclusive
+         * @param limit          The index that elements are iterated to, exclusive
+         * @throws IndexOutOfBoundsException If the beginningLimit is less than 0, the starting
+         *                                       index is less than the beginningLimit, the starting
+         *                                       index is greater than the limit, or the limit is
+         *                                       greater than the size of the list
+         */
+        ArrayListIterator(int beginningLimit, int startingIndex, int limit) {
+            super(startingIndex, limit);
+            // TODO Check implementation
+            Objects.checkFromIndexSize(beginningLimit, startingIndex, limit);
+            
+            this.beginningLimit = beginningLimit;
+        }
+        
+        /**
+         * Returns true if this list iterator has more elements when traversing the list in the
+         * reverse direction. (In other words, returns true if previous() would return an element
+         * rather than throwing an exception.)
+         * 
+         * @return true if the list iterator has more elements when traversing the list in the
+         *             reverse direction
+         */
+        @Override
+        public boolean hasPrevious() {
+            return currentIndex > beginningLimit;
+        }
+        
+        /**
+         * Returns the previous element in the list and moves the cursor position backwards. This
+         * method may be called repeatedly to iterate through the list backwards, or intermixed with
+         * calls to next() to go back and forth. (Note that alternating calls to next and previous
+         * will return the same element repeatedly.)
+         * 
+         * @return the previous element in the list
+         * @throws NoSuchElementException if the iteration has no previous element
+         */
+        @Override
+        public E previous() {
+            if (!this.hasPrevious()) {
+                throw new NoSuchElementException();
+            }
+            
+            state = IteratorState.MOVED;
+            @SuppressWarnings("unchecked")
+            E item = (E) elements[currentIndex];
+            currentIndex--;
+            return item;
+        }
+        
+        /**
+         * Returns the index of the element that would be returned by a subsequent call to next().
+         * (Returns list size if the list iterator is at the end of the list.)
+         * 
+         * @return the index of the element that would be returned by a subsequent call to next, or
+         *             list size if the list iterator is at the end of the list
+         */
+        @Override
+        public int nextIndex() {
+            return currentIndex + 1;
+        }
+        
+        /**
+         * Returns the index of the element that would be returned by a subsequent call to
+         * previous(). (Returns -1 if the list iterator is at the beginning of the list.)
+         * 
+         * @return the index of the element that would be returned by a subsequent call to previous,
+         *             or -1 if the list iterator is at the beginning of the list
+         */
+        @Override
+        public int previousIndex() {
+            return currentIndex - 1;
+        }
+        
+        /**
+         * Replaces the last element returned by next() or previous() with the specified element.
+         * This call can be made only if neither remove() nor add(E) have been called after the last
+         * call to next or previous.
+         * 
+         * @param e the element with which to replace the last element returned by next or previous
+         * @throws IllegalStateException if neither next nor previous have been called, or remove or
+         *                                   add have been called after the last call to next or
+         *                                   previous
+         */
+        @Override
+        public void set(E e) {
+            if (state.cannotModify()) {
+                throw new IllegalStateException("Cannot set an element in this state");
+            }
+            
+            elements[currentIndex] = e;
+            
+        }
+        
+        /**
+         * Inserts the specified element into the list. The element is inserted immediately before
+         * the element that would be returned by next(), if any, and after the element that would be
+         * returned by previous(), if any. (If the list contains no elements, the new element
+         * becomes the sole element on the list.) The new element is inserted before the implicit
+         * cursor: a subsequent call to next would be unaffected, and a subsequent call to previous
+         * would return the new element. (This call increases by one the value that would be
+         * returned by a call to nextIndex or previousIndex.)
+         * 
+         * @param e the element to insert
+         */
+        @Override
+        public void add(E e) {
+            MyArrayList.this.add(currentIndex, e);
+            currentIndex++;
+            endIndexLimit++;
+        }
+        
+    }
     
     /**
      * Returns a view of the portion of this list between the specified fromIndex, inclusive, and
@@ -878,7 +924,6 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      * operations (of the sort that commonly exist for arrays). Any operation that expects a list
      * can be used as a range operation by passing a subList view instead of a whole list. For
      * example, the following idiom removes a range of elements from a list:
-     * 
      * 
      * list.subList(from, to).clear();
      * 
@@ -906,10 +951,52 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         
         private int fromIndex;
         private int toIndex;
-
+        
         ArraySubList(int fromIndex, int toIndex) {
             this.fromIndex = fromIndex;
             this.toIndex = toIndex;
+        }
+        
+        @Override
+        public int size() {
+            // TODO Auto-generated method stub
+            return 0;
+        }
+        
+        @Override
+        public boolean isEmpty() {
+            // TODO Auto-generated method stub
+            return false;
+        }
+        
+        @Override
+        public boolean contains(Object o) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+        
+        @Override
+        public Iterator<E> iterator() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+        
+        @Override
+        public void forEach(Consumer<? super E> action) {
+            // TODO Auto-generated method stub
+            List.super.forEach(action);
+        }
+        
+        @Override
+        public Object[] toArray() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+        
+        @Override
+        public <T> T[] toArray(T[] a) {
+            // TODO Auto-generated method stub
+            return null;
         }
         
         @Override
@@ -917,205 +1004,236 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
             // TODO Auto-generated method stub
             return List.super.toArray(generator);
         }
-
-        @Override
-        public boolean removeIf(Predicate<? super E> filter) {
-            // TODO Auto-generated method stub
-            return List.super.removeIf(filter);
-        }
-
-        @Override
-        public Stream<E> stream() {
-            // TODO Auto-generated method stub
-            return List.super.stream();
-        }
-
-        @Override
-        public Stream<E> parallelStream() {
-            // TODO Auto-generated method stub
-            return List.super.parallelStream();
-        }
-
-        @Override
-        public void forEach(Consumer<? super E> action) {
-            // TODO Auto-generated method stub
-            List.super.forEach(action);
-        }
-
-        @Override
-        public int size() {
-            // TODO Auto-generated method stub
-            return 0;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public boolean contains(Object o) {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public Iterator<E> iterator() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Object[] toArray() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public <T> T[] toArray(T[] a) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
+        
         @Override
         public boolean add(E e) {
             // TODO Auto-generated method stub
             return false;
         }
-
+        
         @Override
         public boolean remove(Object o) {
             // TODO Auto-generated method stub
             return false;
         }
-
+        
         @Override
         public boolean containsAll(Collection<?> c) {
             // TODO Auto-generated method stub
             return false;
         }
-
+        
         @Override
         public boolean addAll(Collection<? extends E> c) {
             // TODO Auto-generated method stub
             return false;
         }
-
-        @Override
-        public boolean addAll(int index, Collection<? extends E> c) {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
+        
         @Override
         public boolean removeAll(Collection<?> c) {
             // TODO Auto-generated method stub
             return false;
         }
-
+        
+        @Override
+        public boolean removeIf(Predicate<? super E> filter) {
+            // TODO Auto-generated method stub
+            return List.super.removeIf(filter);
+        }
+        
         @Override
         public boolean retainAll(Collection<?> c) {
             // TODO Auto-generated method stub
             return false;
         }
-
+        
         @Override
         public void replaceAll(UnaryOperator<E> operator) {
             // TODO Auto-generated method stub
             List.super.replaceAll(operator);
         }
-
+        
         @Override
         public void sort(Comparator<? super E> c) {
             // TODO Auto-generated method stub
             List.super.sort(c);
         }
-
+        
         @Override
         public void clear() {
             // TODO Auto-generated method stub
             
         }
-
+        
         @Override
         public E get(int index) {
             // TODO Auto-generated method stub
             return null;
         }
-
+        
         @Override
         public E set(int index, E element) {
             // TODO Auto-generated method stub
             return null;
         }
-
+        
         @Override
         public void add(int index, E element) {
             // TODO Auto-generated method stub
             
         }
-
+        
         @Override
         public E remove(int index) {
             // TODO Auto-generated method stub
             return null;
         }
-
+        
+        @Override
+        public boolean addAll(int index, Collection<? extends E> c) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+        
         @Override
         public int indexOf(Object o) {
             // TODO Auto-generated method stub
             return 0;
         }
-
+        
         @Override
         public int lastIndexOf(Object o) {
             // TODO Auto-generated method stub
             return 0;
         }
-
+        
         @Override
         public ListIterator<E> listIterator() {
             // TODO Auto-generated method stub
             return null;
         }
-
+        
         @Override
         public ListIterator<E> listIterator(int index) {
             // TODO Auto-generated method stub
             return null;
         }
-
+        
         @Override
         public List<E> subList(int fromIndex, int toIndex) {
             // TODO Auto-generated method stub
             return null;
         }
-
-        @Override
-        public Spliterator<E> spliterator() {
-            // TODO Auto-generated method stub
-            return List.super.spliterator();
-        }
-
+        
         @Override
         public int hashCode() {
             // TODO Auto-generated method stub
             return super.hashCode();
         }
-
+        
         @Override
         public boolean equals(Object obj) {
             // TODO Auto-generated method stub
             return super.equals(obj);
         }
-
+        
         @Override
         public String toString() {
             // TODO Auto-generated method stub
             return super.toString();
         }
         
+        @Override
+        public Spliterator<E> spliterator() {
+            // TODO Auto-generated method stub
+            return List.super.spliterator();
+        }
+        
+        @Override
+        public Stream<E> stream() {
+            // TODO Auto-generated method stub
+            return List.super.stream();
+        }
+        
+        @Override
+        public Stream<E> parallelStream() {
+            // TODO Auto-generated method stub
+            return List.super.parallelStream();
+        }
+        
+    }
+    
+    /**
+     * Compares the specified object with this list for equality. Returns true if and only if the
+     * specified object is also a list, both lists have the same size, and all corresponding pairs
+     * of elements in the two lists are equal. (Two elements e1 and e2 are equal if
+     * Objects.equals(e1, e2).) In other words, two lists are defined to be equal if they contain
+     * the same elements in the same order. This definition ensures that the equals method works
+     * properly across different implementations of the List interface.
+     * 
+     * @param o the object to be compared for equality with this list
+     * @return true if the specified object is equal to this list
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof List<?>)) {
+            return false;
+        }
+        List<?> list = (List<?>) o;
+        if (this.size() != list.size()) {
+            return false;
+        }
+        Iterator<E> thisIterator = this.iterator();
+        Iterator<?> thatIterator = list.iterator();
+        while (thisIterator.hasNext()) {
+            E item1 = thisIterator.next();
+            Object item2 = thatIterator.next();
+            if (!Objects.equals(item1, item2)) {
+                return false;
+            }
+        }
+        return true;
+        
+    }
+    
+    /**
+     * Returns the hash code value for this list. The hash code of a list is defined to be the
+     * result of the following calculation:
+     * 
+     * int hashCode = 1; for (E e : list) hashCode = 31*hashCode + (e==null ? 0 : e.hashCode());
+     * 
+     * This ensures that list1.equals(list2) implies that list1.hashCode()==list2.hashCode() for any
+     * two lists, list1 and list2, as required by the general contract of Object.hashCode().
+     * 
+     * @return the hash code value for this list
+     */
+    @Override
+    public int hashCode() {
+        int hashCode = 1;
+        for (E item : this) {
+            hashCode = 31 * hashCode + (item == null ? 0 : item.hashCode());
+        }
+        return hashCode;
+    }
+    
+    /**
+     * Returns a string representation of this collection. The string representation consists of a
+     * list of the collection's elements in the order they are returned by its iterator, enclosed in
+     * square brackets ("[]"). Adjacent elements are separated by the characters ", " (comma and
+     * space). Elements are converted to strings as by String.valueOf(Object).
+     * 
+     * @return a string representation of this collection
+     */
+    @Override
+    public String toString() {
+        StringJoiner joiner = new StringJoiner(", ", "[", "]");
+        for (E item : this) {
+            joiner.add(String.valueOf(item));
+        }
+        return joiner.toString();
     }
     
     /**

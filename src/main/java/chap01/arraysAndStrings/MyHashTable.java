@@ -908,6 +908,7 @@ public final class MyHashTable<K, V> implements Map<K, V> {
     // ------------------------------------------------------------------------
     // collection views
     // ------------------------------------------------------------------------
+    // TODO inspect a base class to implement typical functions
     /**
      * Returns a Set view of the keys contained in this map. The set is backed by the map, so
      * changes to the map are reflected in the set, and vice-versa. If the map is modified while an
@@ -2443,3 +2444,4 @@ public final class MyHashTable<K, V> implements Map<K, V> {
 // TODO possibly refactor (after efficient implementations) to reuse patterns (replacing entry values, etc)
 // TODO stretch goal: serialization, cloneable, elements() + keys() -> Enumeration (legacy, but an interesting exercise)
 // TODO Spliterator implementations
+// TODO possible base class for collection views
