@@ -11,12 +11,14 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.StringJoiner;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Resizable-array implementation of the {@code List} interface. Implements all optional list
@@ -1294,20 +1296,17 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
         
         @Override
         public Spliterator<E> spliterator() {
-            // TODO Auto-generated method stub
-            return List.super.spliterator();
+            return Spliterators.spliterator(this, Spliterator.ORDERED | Spliterator.SIZED | Spliterator.SUBSIZED);
         }
         
         @Override
         public Stream<E> stream() {
-            // TODO Auto-generated method stub
-            return List.super.stream();
+            return StreamSupport.stream(this.spliterator(), false);
         }
         
         @Override
         public Stream<E> parallelStream() {
-            // TODO Auto-generated method stub
-            return List.super.parallelStream();
+            return StreamSupport.stream(this.spliterator(), true);
         }
         
     }
@@ -1419,8 +1418,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public Spliterator<E> spliterator() {
-        // TODO Auto-generated method stub
-        return List.super.spliterator();
+        return Spliterators.spliterator(this, Spliterator.ORDERED | Spliterator.SIZED | Spliterator.SUBSIZED);
     }
     
     /**
@@ -1435,8 +1433,7 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public Stream<E> stream() {
-        // TODO Auto-generated method stub
-        return List.super.stream();
+        return StreamSupport.stream(this.spliterator(), false);
     }
     
     /**
@@ -1452,11 +1449,11 @@ public final class MyArrayList<E> implements List<E>, RandomAccess {
      */
     @Override
     public Stream<E> parallelStream() {
-        // TODO Auto-generated method stub
-        return List.super.parallelStream();
+        return StreamSupport.stream(this.spliterator(), true);
     }
     
 }
 
 // TODO ArrayList methods? Vector methods?
 // TODO ConcurrentModificationException, serialization, cloneable (legacy)
+// TODO implementation of Spliterators
