@@ -1399,74 +1399,6 @@ public abstract class MySkeletalList<E> extends MySkeletalCollection<E> implemen
      * best-effort structural modification that can be detected on a {@code Spliterator} that is
      * neither {@code IMMUTABLE} nor {@code CONCURRENT}.
      * 
-     * <pre>
-     * {
-     *     &#64;code
-     *     class TaggedArray<T> {
-     *         private final Object[] elements; // immutable after construction
-     *         
-     *         TaggedArray(T[] data, Object[] tags) {
-     *             int size = data.length;
-     *             if (tags.length != size)
-     *                 throw new IllegalArgumentException();
-     *             this.elements = new Object[2 * size];
-     *             for (int i = 0, j = 0; i < size; ++i) {
-     *                 elements[j++] = data[i];
-     *                 elements[j++] = tags[i];
-     *             }
-     *         }
-     *         
-     *         public Spliterator<T> spliterator() {
-     *             return new TaggedArraySpliterator<>(elements, 0, elements.length);
-     *         }
-     *         
-     *         static class TaggedArraySpliterator<T> implements Spliterator<T> {
-     *             private final Object[] array;
-     *             private int origin; // current index, advanced on split or traversal
-     *             private final int fence; // one past the greatest index
-     *             
-     *             TaggedArraySpliterator(Object[] array, int origin, int fence) {
-     *                 this.array = array;
-     *                 this.origin = origin;
-     *                 this.fence = fence;
-     *             }
-     *             
-     *             public void forEachRemaining(Consumer<? super T> action) {
-     *                 for (; origin < fence; origin += 2)
-     *                     action.accept((T) array[origin]);
-     *             }
-     *             
-     *             public boolean tryAdvance(Consumer<? super T> action) {
-     *                 if (origin < fence) {
-     *                     action.accept((T) array[origin]);
-     *                     origin += 2;
-     *                     return true;
-     *                 } else // cannot advance
-     *                     return false;
-     *             }
-     *             
-     *             public Spliterator<T> trySplit() {
-     *                 int lo = origin; // divide range in half
-     *                 int mid = ((lo + fence) >>> 1) & ~1; // force midpoint to be even
-     *                 if (lo < mid) { // split out left half
-     *                     origin = mid; // reset this Spliterator's origin
-     *                     return new TaggedArraySpliterator<>(array, lo, mid);
-     *                 } else // too small to split
-     *                     return null;
-     *             }
-     *             
-     *             public long estimateSize() {
-     *                 return (long) ((fence - origin) / 2);
-     *             }
-     *             
-     *             public int characteristics() {
-     *                 return ORDERED | SIZED | IMMUTABLE | SUBSIZED;
-     *             }
-     *         }
-     *     }
-     * }
-     * </pre>
-     * 
      * @param <T> the type of elements returned by this Spliterator
      */
     private static class RandomAccessSpliterator<T> implements Spliterator<T> {
@@ -1571,9 +1503,9 @@ public abstract class MySkeletalList<E> extends MySkeletalCollection<E> implemen
         
         /**
          * If a remaining element exists, performs the given action on it, returning {@code true};
-         * else returns {@code false}. If this Spliterator is {@link Spliterator#ORDERED} the action
-         * is performed on the next element in encounter order. Exceptions thrown by the action are
-         * relayed to the caller.
+         * else returns {@code false}. Because this Spliterator is {@link Spliterator#ORDERED} the
+         * action is performed on the next element in encounter order. Exceptions thrown by the
+         * action are relayed to the caller.
          * 
          * @param action The action
          * @return {@code false} if no remaining elements existed upon entry to this method, else
@@ -1596,12 +1528,10 @@ public abstract class MySkeletalList<E> extends MySkeletalCollection<E> implemen
         
         /**
          * Performs the given action for each remaining element, sequentially in the current thread,
-         * until all elements have been processed or the action throws an exception. If this
+         * until all elements have been processed or the action throws an exception. Because this
          * Spliterator is {@link Spliterator#ORDERED}, actions are performed in encounter order.
          * Exceptions thrown by the action are relayed to the caller.
          * 
-         * @implSpec The default implementation repeatedly invokes {@link #tryAdvance(Consumer)}
-         * until it returns {@code false}. It should be overridden whenever possible.
          * @param action The action
          * @throws NullPointerException if the specified action is null
          */
@@ -1616,33 +1546,21 @@ public abstract class MySkeletalList<E> extends MySkeletalCollection<E> implemen
         
         /**
          * If this spliterator can be partitioned, returns a Spliterator covering elements, that
-         * will, upon return from this method, not be covered by this Spliterator.
+         * will, upon return from this method, not be covered by this Spliterator. Since this
+         * Spliterator is {@link Spliterator#ORDERED}, the returned Spliterator must cover a strict
+         * prefix of the elements.
          * <p>
-         * If this Spliterator is {@link Spliterator#ORDERED}, the returned Spliterator must cover a
-         * strict prefix of the elements.
-         * <p>
-         * Unless this Spliterator covers an infinite number of elements, repeated calls to
-         * {@code trySplit()} must eventually return {@code null}. Upon non-null return:
-         * <ul>
-         * <li>the value reported for {@code estimateSize()} before splitting, must, after
-         * splitting, be greater than or equal to {@code estimateSize()} for this and the returned
-         * Spliterator; and</li>
-         * <li>if this Spliterator is SUBSIZED, then estimateSize() for this spliterator before
-         * splitting must be equal to the sum of estimateSize() for this and the returned
-         * Spliterator after splitting.</li>
-         * </ul>
+         * For any spliterator, repeated calls to {@code trySplit()} must eventually return
+         * {@code null}. Since this spliterator is {@code SIZED} and {@code SUBSIZED}, upon non-null
+         * return {@link #estimateSize()} for this spliterator before splitting must be equal to the
+         * sum of estimateSize() for this and the returned Spliterator after splitting.
          * <p>
          * This method may return {@code null} for any reason, including emptiness, inability to
          * split after traversal has commenced, data structure constraints, and efficiency
          * considerations.
          * 
-         * @apiNote An ideal {@code trySplit} method efficiently (without traversal) divides its
-         * elements exactly in half, allowing balanced parallel computation. Many departures from
-         * this ideal remain highly effective; for example, only approximately splitting an
-         * approximately balanced tree, or for a tree in which leaf nodes may contain either one or
-         * two elements, failing to further split these nodes. However, large deviations in balance
-         * and/or overly inefficient {@code trySplit} mechanics typically result in poor parallel
-         * performance.
+         * @implSpec This method splits the list in half, returning a Spliterator that operates on
+         * the first half of elements being operated on by this.
          * @return a {@code Spliterator} covering some portion of the elements, or {@code null} if
          * this spliterator cannot be split
          */
@@ -1659,23 +1577,16 @@ public abstract class MySkeletalList<E> extends MySkeletalCollection<E> implemen
         }
         
         /**
-         * Returns an estimate of the number of elements that would be encountered by a
-         * {@link #forEachRemaining(Consumer)} traversal, or returns {@link Long#MAX_VALUE} if
-         * infinite, unknown, or too expensive to compute.
+         * Returns the number of elements that would be encountered by a
+         * {@link #forEachRemaining(Consumer)} traversal.
          * <p>
-         * If this Spliterator is {@link Spliterator#SIZED} and has not yet been partially traversed
-         * or split, or this Spliterator is {@link Spliterator#SUBSIZED} and has not yet been
-         * partially traversed, this estimate must be an accurate count of elements that would be
-         * encountered by a complete traversal. Otherwise, this estimate may be arbitrarily
-         * inaccurate, but must decrease as specified across invocations of {@link #trySplit()}.
+         * Since this Spliterator is both {@code SIZED} and {@code SUBSIZED}, when this has not yet
+         * been partially traversed or split, or when this Spliterator is
+         * {@link Spliterator#SUBSIZED} and has not yet been partially traversed, this estimate must
+         * be an accurate count of elements that would be encountered by a complete traversal.
          * 
-         * @apiNote Even an inexact estimate is often useful and inexpensive to compute. For
-         * example, a sub-spliterator of an approximately balanced binary tree may return a value
-         * that estimates the number of elements to be half of that of its parent; if the root
-         * Spliterator does not maintain an accurate count, it could estimate size to be the power
-         * of two corresponding to its maximum depth.
-         * @return the estimated size, or {@code Long.MAX_VALUE} if infinite, unknown, or too
-         * expensive to compute.
+         * @return the exact number of elements that would be encountered by a complete traversal of
+         * this {@code Spliterator}
          */
         @Override
         public long estimateSize() {
@@ -1683,12 +1594,10 @@ public abstract class MySkeletalList<E> extends MySkeletalCollection<E> implemen
         }
         
         /**
-         * Convenience method that returns {@link #estimateSize()} if this Spliterator is
-         * {@link Spliterator#SIZED}, else {@code -1}.
+         * Convenience method that returns {@link #estimateSize()} since this Spliterator is
+         * {@link Spliterator#SIZED}.
          * 
-         * @implSpec The default implementation returns the result of {@code estimateSize()} if the
-         * Spliterator reports a characteristic of {@code SIZED}, and {@code -1} otherwise.
-         * @return the exact size, if known, else {@code -1}.
+         * @return the exact size
          */
         @Override
         public long getExactSizeIfKnown() {
@@ -1697,22 +1606,11 @@ public abstract class MySkeletalList<E> extends MySkeletalCollection<E> implemen
         
         /**
          * Returns a set of characteristics of this Spliterator and its elements. The result is
-         * represented as ORed values from {@link Spliterator#ORDERED},
-         * {@link Spliterator#DISTINCT}, {@link Spliterator#SORTED}, {@link Spliterator#SIZED},
-         * {@link Spliterator#NONNULL}, {@link Spliterator#IMMUTABLE},
-         * {@link Spliterator#CONCURRENT}, {@link Spliterator#SUBSIZED}. Repeated calls to
-         * {@code characteristics()} on a given spliterator, prior to or in-between calls to
-         * {@code trySplit}, should always return the same result.
-         * <p>
-         * If a Spliterator reports an inconsistent set of characteristics (either those returned
-         * from a single invocation or across multiple invocations), no guarantees can be made about
-         * any computation using this Spliterator.
+         * represented as ORed values from {@link Spliterator#ORDERED}, {@link Spliterator#SIZED},
+         * and {@link Spliterator#SUBSIZED}.
          * 
-         * @apiNote The characteristics of a given spliterator before splitting may differ from the
-         * characteristics after splitting. For specific examples see the characteristic values
-         * {@link Spliterator#SIZED}, {@link Spliterator#SUBSIZED} and
-         * {@link Spliterator#CONCURRENT}.
-         * @return a representation of characteristics
+         * @return a representation of characteristics: {@code ORDERED}, {@code SIZED}, and
+         * {@code SUBSIZED}
          */
         @Override
         public int characteristics() {
@@ -1723,8 +1621,6 @@ public abstract class MySkeletalList<E> extends MySkeletalCollection<E> implemen
          * Returns {@code true} if this Spliterator's {@link #characteristics()}) contain all of the
          * given characteristics.
          * 
-         * @implSpec This implementation returns true if the corresponding bits of the given
-         * characteristics are set.
          * @param characteristics the characteristics to check for
          * @return {@code true} if all the specified characteristics are present, else {@code false}
          */
@@ -1739,10 +1635,9 @@ public abstract class MySkeletalList<E> extends MySkeletalCollection<E> implemen
          * returns {@code null}. Otherwise, if the source is not {@code SORTED}, throws
          * {@link IllegalStateException}.
          * 
-         * @implSpec This implementation always throws IllegalStateException.
-         * @return a Comparator, or {@code null} if the elements are sorted in the natural order.
-         * @throws IllegalStateException if the spliterator does not report a characteristic of
-         *     {@code SORTED}.
+         * @return nothing, this always throws an {@code IllegalStateException}
+         * @throws IllegalStateException always since this spliterator does not report a
+         *     characteristic of {@code SORTED}.
          */
         @Override
         public Comparator<? super T> getComparator() {
