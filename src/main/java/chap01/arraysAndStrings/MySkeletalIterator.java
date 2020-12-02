@@ -101,7 +101,7 @@ public abstract class MySkeletalIterator<E> implements Iterator<E> {
          * @return {@code true} if the iterator is in a state where it can be modified
          */
         public boolean cannotModify() {
-            return this == MOVED_FORWARDS || this == MOVED_BACKWARDS;
+            return this == INITIALIZED || this == MODIFIED;
         }
     }
 }
