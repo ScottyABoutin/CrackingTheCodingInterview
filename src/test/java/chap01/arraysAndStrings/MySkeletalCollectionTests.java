@@ -6,6 +6,10 @@ import org.junit.jupiter.api.Test;
 
 class MySkeletalCollectionTests {
     
+    class BasicImmutableCollectionTests {
+        
+    }
+    
     @Test
     void testMySkeletalCollection() {
         fail("Not yet implemented");

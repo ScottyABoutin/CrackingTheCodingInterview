@@ -116,31 +116,7 @@ class MySkeletalIteratorTests {
         assertTrue(collector.strings.isEmpty());
     }
     
-    @Test
-    void testStateChecks() {
-        assertEquals(INITIALIZED, emptyIterator.state);
-        emptyIterator.hasNext();
-        assertEquals(INITIALIZED, emptyIterator.state);
-        
-        assertEquals(INITIALIZED, threeElementIterator.state);
-        threeElementIterator.hasNext();
-        assertEquals(INITIALIZED, threeElementIterator.state);
-        threeElementIterator.next();
-        assertEquals(MOVED, threeElementIterator.state);
-        threeElementIterator.hasNext();
-        assertEquals(MOVED, threeElementIterator.state);
-        threeElementIterator.forEachRemaining(collector);
-        assertEquals(MOVED, threeElementIterator.state);
-    }
     
-    @Test
-    void testStateChecksEdgeCaseForEach() {
-        emptyIterator.forEachRemaining(collector);
-        assertEquals(INITIALIZED, emptyIterator.state);
-        
-        threeElementIterator.forEachRemaining(collector);
-        assertEquals(MOVED, threeElementIterator.state);
-    }
     
     @Nested
     class StateTests {
@@ -150,6 +126,32 @@ class MySkeletalIteratorTests {
             assertTrue(MySkeletalIterator.State.MODIFIED.cannotModify());
             assertFalse(MySkeletalIterator.State.MOVED_FORWARDS.cannotModify());
             assertFalse(MySkeletalIterator.State.MOVED_BACKWARDS.cannotModify());
+        }
+        
+        @Test
+        void testStateChecks() {
+            assertEquals(INITIALIZED, emptyIterator.state);
+            emptyIterator.hasNext();
+            assertEquals(INITIALIZED, emptyIterator.state);
+            
+            assertEquals(INITIALIZED, threeElementIterator.state);
+            threeElementIterator.hasNext();
+            assertEquals(INITIALIZED, threeElementIterator.state);
+            threeElementIterator.next();
+            assertEquals(MOVED, threeElementIterator.state);
+            threeElementIterator.hasNext();
+            assertEquals(MOVED, threeElementIterator.state);
+            threeElementIterator.forEachRemaining(collector);
+            assertEquals(MOVED, threeElementIterator.state);
+        }
+        
+        @Test
+        void testStateChecksEdgeCaseForEach() {
+            emptyIterator.forEachRemaining(collector);
+            assertEquals(INITIALIZED, emptyIterator.state);
+            
+            threeElementIterator.forEachRemaining(collector);
+            assertEquals(MOVED, threeElementIterator.state);
         }
     }
     
