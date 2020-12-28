@@ -6,10 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
-import java.util.function.Consumer;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -36,21 +34,10 @@ class MySkeletalIteratorTests {
         }
     }
     
-    static class Collector implements Consumer<String> {
-        int count = 0;
-        ArrayList<String> strings = new ArrayList<>();
-        
-        public void accept(String string) {
-            count++;
-            strings.add(string);
-        }
-        
-    }
-    
     EmptyIterator emptyIterator;
     ThreeElementIterator threeElementIterator;
     
-    Collector collector;
+    ForEachCollector collector;
     MySkeletalIterator.State INITIALIZED = MySkeletalIterator.State.INITIALIZED;
     MySkeletalIterator.State MOVED = MySkeletalIterator.State.MOVED_FORWARDS;
     
@@ -58,12 +45,12 @@ class MySkeletalIteratorTests {
     void setUp() {
         emptyIterator = new EmptyIterator();
         threeElementIterator = new ThreeElementIterator();
-        collector = new Collector();
+        collector = new ForEachCollector();
     }
     
     @Test
-    void testMySkeletalIterator() {
-        // Constructor is tested by the setUp succeeding in creating anonymous classes
+    void testNoArgConstructor() {
+        // Constructor is tested by the setUp succeeding in creating classes
         assertNotNull(emptyIterator);
         assertNotNull(threeElementIterator);
     }
@@ -77,7 +64,7 @@ class MySkeletalIteratorTests {
     }
     
     @Test
-    void testForEachRemainin_NullConsumer() {
+    void testForEachRemaining_NullConsumer() {
         assertThrows(NullPointerException.class, () -> emptyIterator.forEachRemaining(null));
         assertThrows(NullPointerException.class, () -> threeElementIterator.forEachRemaining(null));
     }
@@ -102,7 +89,6 @@ class MySkeletalIteratorTests {
         threeElementIterator.next();
         threeElementIterator.forEachRemaining(collector);
         assertEquals(1, collector.count);
-        System.out.println(collector.strings);
         assertTrue(collector.strings.contains(threeElementIterator.elements[2]));
     }
     
@@ -115,8 +101,6 @@ class MySkeletalIteratorTests {
         assertEquals(0, collector.count);
         assertTrue(collector.strings.isEmpty());
     }
-    
-    
     
     @Nested
     class StateTests {
@@ -154,5 +138,4 @@ class MySkeletalIteratorTests {
             assertEquals(MOVED, threeElementIterator.state);
         }
     }
-    
 }
