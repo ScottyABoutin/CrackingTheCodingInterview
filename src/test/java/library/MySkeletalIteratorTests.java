@@ -1,4 +1,4 @@
-package chap01.arraysAndStrings;
+package library;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -12,6 +12,8 @@ import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import library.MySkeletalIterator;
 
 class MySkeletalIteratorTests {
     static class EmptyIterator extends MySkeletalIterator<String> {

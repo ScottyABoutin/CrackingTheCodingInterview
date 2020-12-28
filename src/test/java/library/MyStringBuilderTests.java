@@ -1,4 +1,4 @@
-package chap01.arraysAndStrings;
+package library;
 
 import static org.junit.jupiter.api.Assertions.*;
 

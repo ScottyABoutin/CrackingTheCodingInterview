@@ -1,4 +1,4 @@
-package chap01.arraysAndStrings;
+package library;
 
 import java.util.Arrays;
 import java.util.Objects;

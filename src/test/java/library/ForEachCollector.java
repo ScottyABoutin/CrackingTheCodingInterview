@@ -1,4 +1,4 @@
-package chap01.arraysAndStrings;
+package library;
 
 import java.util.ArrayList;
 import java.util.function.Consumer;

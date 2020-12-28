@@ -1,10 +1,10 @@
-package chap01.arraysAndStrings;
+package library;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
-class MyHashTableTests {
+class MyArrayListTests {
     
     @Test
     void test() {
